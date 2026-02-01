@@ -133,6 +133,18 @@ def main_loop():
                                 
                                 # Show Analysis
                                 console.print(Panel(Markdown(result.get("analysis", "")), title="AI Security Report", border_style="bold red"))
+                                
+                                # PDF Export Option
+                                if Confirm.ask("Export to PDF?"):
+                                    try:
+                                        export_resp = requests.get(f"{API_URL}/scan/{scan_id}/export")
+                                        if export_resp.status_code == 200:
+                                            path = export_resp.json().get("path")
+                                            console.print(f"[success]✔ Report saved: {path}[/success]")
+                                        else:
+                                            console.print(f"[error]Export failed: {export_resp.text}[/error]")
+                                    except Exception as e:
+                                        console.print(f"[error]Export error: {e}[/error]")
                         else:
                             console.print(f"[error]Failed to start scan: {scan_resp.text}[/error]")
                     except Exception as e:

@@ -54,13 +54,15 @@ def ask_kimi(prompt: str, system_prompt: str = "You are Sentra.AI, a cybersecuri
     except Exception as e:
         return f"Connection Failed: {e}"
 
-def analyze_results(nmap_output: str) -> str:
+def analyze_results(nmap_output: str, nikto_output: str = "No Nikto scan performed.") -> str:
     prompt = f"""
-    Analyze this Nmap scan result and provide a concise security assessment:
+    Analyze these security scan results (Nmap + Nikto) and provide a concise assessment:
     
-    ```text
-    {nmap_output[:4000]} 
-    ```
+    === NMAP SCAN ===
+    {nmap_output[:3000]}
+    
+    === NIKTO WEB SCAN ===
+    {nikto_output[:3000]}
     
     Format as:
     1. **Summary**: What is running?

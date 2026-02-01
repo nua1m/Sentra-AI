@@ -31,9 +31,13 @@ async def run_background_scan(scan_id: str, target: str):
     nmap_out = await scanner.run_nmap_scan(target)
     scans[scan_id]["nmap"] = nmap_out
     
-    # 2. Analyze
+    # 2. Run Nikto (in parallel or seq? Seq for now to not overload)
+    nikto_out = await scanner.run_nikto_scan(target)
+    scans[scan_id]["nikto"] = nikto_out
+    
+    # 3. Analyze
     scans[scan_id]["status"] = "analyzing"
-    analysis = analyze_results(nmap_out)
+    analysis = analyze_results(nmap_out, nikto_out)
     scans[scan_id]["analysis"] = analysis
     
     scans[scan_id]["status"] = "complete"
@@ -99,3 +103,22 @@ def get_scan_status(scan_id: str):
     if scan_id not in scans:
         raise HTTPException(404, "Scan ID not found")
     return scans[scan_id]
+
+@app.get("/scan/{scan_id}/export")
+def export_scan_pdf(scan_id: str):
+    """
+    Generates and returns path to PDF report.
+    """
+    if scan_id not in scans:
+        raise HTTPException(404, "Scan ID not found")
+    
+    scan_data = scans[scan_id]
+    if scan_data.get("status") != "complete":
+        raise HTTPException(400, "Scan not complete yet")
+    
+    # Import here to avoid circular imports
+    from .reporting import generate_pdf_report
+    
+    scan_data["scan_id"] = scan_id
+    report_path = generate_pdf_report(scan_data, f"sentra_report_{scan_id[:8]}.pdf")
+    return {"status": "generated", "path": report_path}

@@ -10,12 +10,22 @@ class Scanner:
         self.nmap_paths = [shutil.which("nmap"), "C:\\Program Files (x86)\\Nmap\\nmap.exe"]
         self.nmap_path = next((p for p in self.nmap_paths if p and shutil.which(p) or p), None)
         
-        # Verify if it actually exists if fell back to hardcoded
-        if self.nmap_path and "nmap.exe" in self.nmap_path and not shutil.which("nmap"):
-             # Basic check if file exists skipped for brevity, subprocess will fail if invalid
-             pass
-
-        self.nikto_path = shutil.which("nikto") # Assumes nikto in path (e.g. via perl)
+        # Check for Local Nikto or Docker
+        self.nikto_path = shutil.which("nikto")
+        self.docker_path = shutil.which("docker")
+        self.use_docker_nikto = False
+        
+        if not self.nikto_path and self.docker_path:
+            # Verify Docker Daemon is actually running
+            try:
+                subprocess.run([self.docker_path, "info"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self.use_docker_nikto = True
+                logger.info("Docker found and daemon is running. Enabled Nikto via Docker.")
+            except subprocess.CalledProcessError:
+                self.use_docker_nikto = False
+                logger.warning("Docker binary found but Daemon is not running. Nikto disabled.")
+            except Exception:
+                self.use_docker_nikto = False
 
     def is_available(self) -> bool:
         return bool(self.nmap_path)
@@ -49,13 +59,23 @@ class Scanner:
 
     async def run_nikto_scan(self, target: str) -> str:
         """
-        Runs Nikto web scan.
+        Runs Nikto web scan (Local or Docker).
         """
-        if not self.nikto_path:
-            return "Nikto not installed/found. Skipping web scan."
+        if not self.nikto_path and not self.use_docker_nikto:
+            return "Nikto not installed (and Docker not found). Skipping web scan."
 
         logger.info(f"Starting Nikto on {target}")
-        cmd = [self.nikto_path, "-h", target, "-maxtime", "300"]
+        
+        # Handle Localhost for Docker on Windows
+        scan_target = target
+        if self.use_docker_nikto:
+            if target in ["localhost", "127.0.0.1", "::1"]:
+                scan_target = "host.docker.internal"
+                logger.info(f"Adjusted target for Docker: {scan_target}")
+
+            cmd = [self.docker_path, "run", "--rm", "sullo/nikto", "-h", scan_target, "-maxtime", "60"] # Short 1m limit for PoC
+        else:
+            cmd = [self.nikto_path, "-h", target, "-maxtime", "60"]
         
         try:
             result = await asyncio.to_thread(
