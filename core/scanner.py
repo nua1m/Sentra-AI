@@ -73,7 +73,7 @@ class Scanner:
                 scan_target = "host.docker.internal"
                 logger.info(f"Adjusted target for Docker: {scan_target}")
 
-            cmd = [self.docker_path, "run", "--rm", "sullo/nikto", "-h", scan_target, "-maxtime", "60"] # Short 1m limit for PoC
+            cmd = [self.docker_path, "run", "--rm", "frapsoft/nikto", "-h", f"http://{scan_target}:80", "-maxtime", "60"]
         else:
             cmd = [self.nikto_path, "-h", target, "-maxtime", "60"]
         

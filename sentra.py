@@ -51,7 +51,7 @@ def poll_scan(scan_id):
                     if status == "pending":
                         live.update(Spinner("dots", text="[green]Queuing scan...[/green]"))
                     elif status == "scanning":
-                        live.update(Spinner("radar", text=f"[green]Running Nmap on {data.get('target')}...[/green]"))
+                        live.update(Spinner("dots12", text=f"[green]Running Nmap on {data.get('target')}...[/green]"))
                     elif status == "analyzing":
                         live.update(Spinner("bouncingBall", text="[cyan]AI Analyzing results...[/cyan]"))
                     elif status == "complete":
