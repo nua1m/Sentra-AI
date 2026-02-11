@@ -17,13 +17,6 @@ def ask_kimi(prompt: str, system_prompt: str = "You are Sentra.AI, a cybersecuri
     # Reload env to pick up changes without restart
     load_dotenv(override=True)
     api_key = os.getenv("OPENROUTER_API_KEY")
-    
-    # DEBUG: Print what we found
-    print(f"[DEBUG] Loading .env from: {os.getcwd()}")
-    print(f"[DEBUG] API Key found: {'Yes' if api_key else 'No'}")
-    if api_key:
-        print(f"[DEBUG] API Key start: {api_key[:10]}...") 
-        print(f"[DEBUG] API Key length: {len(api_key)}")
 
     if not api_key or "your-key-here" in api_key:
         logger.error(f"API Key Invalid. Value: {api_key}")

@@ -134,6 +134,22 @@ def main_loop():
                                 # Show Analysis
                                 console.print(Panel(Markdown(result.get("analysis", "")), title="AI Security Report", border_style="bold red"))
                                 
+                                # === NEW: Show Remediation Fixes ===
+                                if Confirm.ask("Generate Fix Commands?"):
+                                    try:
+                                        fixes_resp = requests.get(f"{API_URL}/scan/{scan_id}/fixes")
+                                        if fixes_resp.status_code == 200:
+                                            fixes_data = fixes_resp.json()
+                                            console.print(Panel(
+                                                Markdown(fixes_data.get("formatted", "No fixes generated.")),
+                                                title=f"🛡️ Blue Team Fixes ({fixes_data.get('fix_count', 0)} found) - OS: {fixes_data.get('os_detected', 'unknown').upper()}",
+                                                border_style="bold blue"
+                                            ))
+                                        else:
+                                            console.print(f"[error]Fix generation failed: {fixes_resp.text}[/error]")
+                                    except Exception as e:
+                                        console.print(f"[error]Error getting fixes: {e}[/error]")
+                                
                                 # PDF Export Option
                                 if Confirm.ask("Export to PDF?"):
                                     try:

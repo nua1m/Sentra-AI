@@ -83,6 +83,44 @@ def generate_pdf_report(scan_data: dict, filename: str = "report.pdf") -> str:
         pdf.set_font("Courier", "", 9)
         pdf.multi_cell(0, 5, sanitize_text(nikto_data)[:5000])
 
+    # === NEW: Remediation Fixes Section ===
+    fixes_data = scan_data.get("fixes", {})
+    if fixes_data and fixes_data.get("findings"):
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(0, 10, f"Remediation Commands (OS: {fixes_data.get('os_detected', 'unknown').upper()})", ln=True)
+        pdf.ln(5)
+        
+        for i, finding in enumerate(fixes_data["findings"], 1):
+            # Finding header
+            pdf.set_font("Arial", "B", 11)
+            severity = finding.get("severity", "UNKNOWN")
+            desc = sanitize_text(finding.get("description", ""))
+            pdf.cell(0, 8, f"Fix #{i} [{severity}]: {desc}", ln=True)
+            
+            # Source info
+            pdf.set_font("Arial", "I", 9)
+            if "port" in finding:
+                pdf.cell(0, 6, f"Source: Nmap - Port {finding['port']}", ln=True)
+            else:
+                pdf.cell(0, 6, f"Source: Nikto - {finding.get('finding', 'Web vulnerability')}", ln=True)
+            
+            # Commands
+            pdf.set_font("Courier", "", 9)
+            for cmd in finding.get("commands", []):
+                cmd_clean = sanitize_text(cmd)
+                pdf.multi_cell(0, 5, cmd_clean)
+            pdf.ln(5)
+        
+        # AI recommendations
+        ai_recs = fixes_data.get("ai_recommendations", "")
+        if ai_recs:
+            pdf.ln(5)
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 8, "Additional AI Recommendations", ln=True)
+            pdf.set_font("Arial", "", 10)
+            pdf.multi_cell(0, 6, sanitize_text(ai_recs)[:3000])
+
     # Save
     report_path = os.path.join(os.getcwd(), filename)
     pdf.output(report_path)
