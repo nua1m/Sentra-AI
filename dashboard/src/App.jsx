@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import ChatPage from './pages/ChatPage'
-import { fetchHealth, fetchScans } from './api'
+import { fetchHealth, fetchScans, removeScan } from './api'
 import './index.css'
 
 export default function App() {
   const [health, setHealth] = useState(null)
   const [scans, setScans] = useState([])
   const [activeScanId, setActiveScanId] = useState(null)
+  const [scanStage, setScanStage] = useState(null)
+  const [chatSessionId, setChatSessionId] = useState(Date.now())
 
   useEffect(() => {
     fetchHealth().then(setHealth).catch(() => setHealth(null))
@@ -23,24 +25,41 @@ export default function App() {
 
   const refreshScans = () => fetchScans().then(setScans).catch(() => { })
 
+  const handleDeleteScan = async (id) => {
+    await removeScan(id);
+    if (activeScanId === id) {
+      setActiveScanId(null);
+      setChatSessionId(Date.now());
+    }
+    refreshScans();
+  }
+
+  const handleNewScan = () => {
+    setActiveScanId(null);
+    setChatSessionId(Date.now());
+  }
+
   return (
-    <div className="app-container">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar
         health={health}
         scans={scans}
         activeScanId={activeScanId}
         onSelectScan={setActiveScanId}
-        onNewChat={() => setActiveScanId(null)}
+        onNewScan={handleNewScan}
+        onDeleteScan={handleDeleteScan}
       />
 
-      <div className="main-content">
-        <TopBar />
+      <main className="flex-1 flex flex-col overflow-hidden bg-background">
+        <TopBar scanStage={scanStage} activeScanId={activeScanId} scans={scans} />
         <ChatPage
+          key={chatSessionId}
           activeScanId={activeScanId}
           onScanStarted={(id) => { setActiveScanId(id); refreshScans() }}
           onScanComplete={refreshScans}
+          onStageChange={setScanStage}
         />
-      </div>
+      </main>
     </div>
   )
 }

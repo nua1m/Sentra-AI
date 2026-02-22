@@ -3,13 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import logging
 import uuid
+import asyncio
 from datetime import datetime
 from typing import Dict
 
 from .security import verify_target_ownership
 from .scanner import Scanner
-from .intelligence import classify_intent, ask_kimi, analyze_results
-from .database import save_scan, get_scan, list_scans, update_scan_status
+from .intelligence import process_chat_query, ask_kimi, analyze_results
+from .database import save_scan, get_scan, list_scans, update_scan_status, delete_scan
 
 # Setup
 app = FastAPI(title="Sentra.AI Core")
@@ -56,18 +57,18 @@ async def run_background_scan(scan_id: str, target: str):
     scans[scan_id]["scan_stage"] = "nikto_done"
     update_scan_status(scan_id, "scanning", nikto=nikto_out, scan_stage="nikto_done")
     
-    # 3. AI Analysis
+    # 3. AI Analysis (Run in thread to prevent blocking event loop)
     scans[scan_id]["status"] = "analyzing"
     scans[scan_id]["scan_stage"] = "analyzing"
     update_scan_status(scan_id, "analyzing", scan_stage="analyzing")
-    analysis = analyze_results(nmap_out, nikto_out)
+    analysis = await asyncio.to_thread(analyze_results, nmap_out, nikto_out)
     scans[scan_id]["analysis"] = analysis
     
-    # 4. Generate fixes
+    # 4. Generate fixes (Run in thread)
     scans[scan_id]["scan_stage"] = "generating_fixes"
     update_scan_status(scan_id, "analyzing", scan_stage="generating_fixes")
     from .remediation import generate_fixes
-    fixes = generate_fixes(nmap_output=nmap_out, nikto_output=nikto_out)
+    fixes = await asyncio.to_thread(generate_fixes, nmap_output=nmap_out, nikto_output=nikto_out)
     scans[scan_id]["fixes"] = fixes
     
     # 5. Mark complete
@@ -94,7 +95,8 @@ def health_check():
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
-    intent = classify_intent(req.message)
+    # Run in thread instead of blocking event loop
+    intent = await asyncio.to_thread(process_chat_query, req.message)
     
     if intent.get("action") == "scan" and intent.get("target"):
         target = intent["target"]
@@ -113,8 +115,8 @@ async def chat_endpoint(req: ChatRequest):
             "message": f"Target {target} Verified. Ready to launch Scan."
         }
 
-    response = ask_kimi(req.message)
-    return {"type": "message", "message": response}
+    # Returning exactly what the single API call generated
+    return {"type": "message", "message": intent.get("message", "No response generated.")}
 
 
 @app.post("/scan/start")
@@ -137,6 +139,12 @@ async def start_scan_endpoint(req: ScanRequest, bg_tasks: BackgroundTasks):
 def list_all_scans():
     return list_scans()
 
+@app.delete("/scan/{scan_id}")
+def delete_existing_scan(scan_id: str):
+    if scan_id in scans:
+        del scans[scan_id]
+    delete_scan(scan_id)
+    return {"status": "deleted"}
 
 @app.get("/scan/{scan_id}")
 def get_scan_status(scan_id: str):

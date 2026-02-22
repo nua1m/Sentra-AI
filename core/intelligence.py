@@ -66,32 +66,37 @@ def analyze_results(nmap_output: str, nikto_output: str = "No Nikto scan perform
 
 import re
 
-def classify_intent(message: str) -> dict:
+def process_chat_query(message: str) -> dict:
     """
-    Determines user intent from CLI input.
-    Returns JSON: {"action": "scan"|"chat", "target": "..."}
+    Determines user intent from CLI input AND generates a response if it's a chat.
+    Makes only ONE call to the AI to slash latency in half.
+    Returns JSON: {"action": "scan", "target": "..."} OR {"action": "chat", "message": "..."}
     """
-    # 1. Faster Regex Check (Skips AI latency)
-    scan_match = re.search(r"(?:scan|check|test|analyze)\s+([a-zA-Z0-9.-]+)", message, re.IGNORECASE)
+    # 1. Faster Regex Check (Skips AI entirely for obvious commands)
+    scan_match = re.search(r"^(?:scan|check|test|analyze)\s+([a-zA-Z0-9.-]+)$", message.strip(), re.IGNORECASE)
     if scan_match:
-        return {"action": "scan", "target": scan_match.group(1), "scan_type": "full"}
+        return {"action": "scan", "target": scan_match.group(1)}
         
-    # 2. AI Fallback (Slow but smart)
-    prompt = f"""
-    Extract intent from: "{message}"
-    Return JSON only:
-    {{
-        "action": "scan" or "chat",
-        "target": "IP/Domain" or null,
-        "scan_type": "full" or "quick"
-    }}
-    If user wants to scan, set action=scan. If just talking, action=chat.
-    """
+    # 2. Unified AI Call for everything else
+    system_prompt = """You are Sentra.AI, an expert cybersecurity assistant.
+The user will provide a message. Determine if they want to initiate a vulnerability scan on a specific target (IP or domain), OR if they are asking a security-related question/chatting.
+
+RULES:
+1. You MUST respond ONLY with a raw JSON object. Do NOT wrap it in ```json blocks. No conversational filler.
+2. If the user wants to scan a target, output:
+{"action": "scan", "target": "<ip_or_domain>"}
+
+3. If the user is just asking a question (e.g. "What is Nmap?", "hello"), output a helpful, detailed response:
+{"action": "chat", "message": "<your response>"}
+"""
     
     try:
-        response = ask_kimi(prompt, system_prompt="You are a JSON extractor. Output ONLY JSON.")
+        response_text = ask_kimi(message, system_prompt=system_prompt)
+        
         # Strip markdown code blocks if present
-        clean = response.replace("```json", "").replace("```", "").strip()
+        clean = response_text.replace("```json", "").replace("```", "").strip()
         return json.loads(clean)
-    except:
-        return {"action": "chat", "target": None}
+    except Exception as e:
+        logger.error(f"Failed to parse Unified AI Response: {e}")
+        # Fallback if AI fails to return valid JSON
+        return {"action": "chat", "message": "I processed that, but encountered a formatting error on my end. Could you rephrase?"}

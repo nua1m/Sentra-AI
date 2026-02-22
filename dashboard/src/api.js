@@ -33,3 +33,8 @@ export async function exportPdf(scanId) {
     const res = await fetch(`${API_BASE}/scan/${scanId}/export`);
     return res.json();
 }
+
+export async function removeScan(scanId) {
+    const res = await fetch(`${API_BASE}/scan/${scanId}`, { method: 'DELETE' });
+    return res.json();
+}

@@ -3,30 +3,28 @@ import ScanViz from '../components/ScanViz'
 import ResultCard from '../components/ResultCard'
 import { fetchScan, fetchFixes, exportPdf, startScan } from '../api'
 
-// TACTICAL LOADER (Updated Text)
+// TACTICAL LOADER
 function TacticalLoader() {
     const [text, setText] = useState('Establishing Uplink...')
     useEffect(() => {
         const steps = [
-            'Establishing Secure Uplink...',
-            'Verifying Personnel ID...',
-            'Awaiting Neural Response...',
-            'Synchronizing Data Stream...',
-            'Processing Request...'
+            'Analyzing Request...',
+            'Connecting to Target...',
+            'Initializing Security Suite...',
+            'Processing...'
         ]
         let i = 0
         const interval = setInterval(() => { setText(steps[i++ % steps.length]) }, 800)
         return () => clearInterval(interval)
     }, [])
     return (
-        <div className="msg-row">
-            <div className="msg-avatar ai">S</div>
-            <div className="msg-bubble ai" style={{ opacity: 0.8 }}>
-                <div className="font-mono text-cyan-500 text-xs mb-1">SENTRA_CORE // LINK_ACTIVE</div>
-                <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.8rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="scan-spinner" style={{ width: '12px', height: '12px', borderColor: 'var(--text-dim)', borderTopColor: 'var(--primary-cyan)' }}></span>
-                    {text}
-                </div>
+        <div className="flex gap-4 mb-8">
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-primary border border-border-light shrink-0">
+                <span className="material-symbols-outlined text-lg">smart_toy</span>
+            </div>
+            <div className="bg-white border border-border-light rounded-2xl p-5 shadow-sm max-w-2xl w-full flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary animate-spin" style={{ animationDuration: '3s' }}>sync</span>
+                <span className="text-sm font-medium text-slate-600">{text}</span>
             </div>
         </div>
     )
@@ -35,13 +33,13 @@ function TacticalLoader() {
 const WELCOME_MSG = {
     id: 'welcome',
     role: 'ai',
-    text: "Initializing Sentra.AI Protocol v2.5...\n\nSystems Online. Neural Engine Active.\n\nAwaiting operator command. Say **\"Scan localhost\"** to begin target acquisition.",
+    text: "Welcome to Sentra AI Enterprise.\n\nI am your intelligent security assistant. I can automate vulnerability scans, analyze infrastructure risks, and generate remediation scripts.\n\nType **\"Scan localhost\"** or enter a target IP/domain to begin an operation.",
 }
 
 const SUGGESTIONS = [
-    { text: 'Scan localhost' },
-    { text: 'Explain port scanning' },
-    { text: 'Secure SSH service' },
+    { text: 'Scan localhost', icon: 'radar' },
+    { text: 'Explain port scanning', icon: 'school' },
+    { text: 'Secure SSH service', icon: 'security' },
 ]
 
 export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }) {
@@ -59,7 +57,6 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
     useEffect(() => {
         if (!activeScanId) return
 
-        // Check if we already have this scan in history to avoid duplication
         const existing = messages.find(m => m.scanId === activeScanId)
         if (existing) return
 
@@ -79,11 +76,10 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
             } catch { }
         }
         load()
-    }, [activeScanId])
+    }, [activeScanId, messages])
 
     // Polling Effect for ACTIVE scans
     useEffect(() => {
-        // Find any message that is 'scan_running'
         const activeScanMsg = messages.find(m => m.type === 'scan_running')
         if (!activeScanMsg) return
 
@@ -91,46 +87,29 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
             try {
                 const data = await fetchScan(activeScanMsg.scanId)
 
-                // Update the message state
                 setMessages(prev => prev.map(m => {
                     if (m.scanId === activeScanMsg.scanId) {
-
-                        // Current stage from backend
                         const serverStage = data.scan_stage || data.status
                         const isComplete = data.status === 'complete'
 
-                        // STAGE ORDER DEFINITION
                         const STAGES = ['nmap_running', 'nmap_done', 'nikto_running', 'nikto_done', 'analyzing', 'generating_fixes', 'complete']
-
-                        // Helper to get index
                         const getStageIdx = (s) => STAGES.indexOf(s)
 
                         const currentIdx = getStageIdx(m.stage || 'nmap_running')
                         const serverIdx = getStageIdx(serverStage)
 
-                        // If already complete in UI, do nothing
                         if (m.type === 'scan_result') return m
 
-                        // LOGIC: If backend is ahead, only advance ONE step per tick to animate
-                        // If backend is complete, we still step through until we hit 'complete'
-
                         let nextStage = m.stage
-                        let nextType = m.type
-                        let nextData = m.data
-                        let nextFixes = m.fixes
 
                         if (currentIdx < serverIdx || (isComplete && currentIdx < STAGES.length - 1)) {
-                            // Advance one step
                             nextStage = STAGES[currentIdx + 1]
                         } else {
-                            // Sync with server if we caught up (or server corresponds to current)
                             nextStage = serverStage
                         }
 
-                        // If we finally hit complete in UI
                         if (nextStage === 'complete' || (isComplete && currentIdx >= STAGES.indexOf('generating_fixes'))) {
                             onScanComplete?.()
-                            // Populate data
                             return { ...m, type: 'scan_result', data, fixes: null, stage: 'complete' }
                         }
 
@@ -139,7 +118,6 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                     return m
                 }))
 
-                // Formatting result if complete (prefetch fixes)
                 if (data.status === 'complete') {
                     try {
                         const fixes = await fetchFixes(activeScanMsg.scanId)
@@ -150,10 +128,10 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                 }
 
             } catch { }
-        }, 2000) // 2s per step for deliberate, cinematic sequencing
+        }, 2000)
 
         return () => clearInterval(interval)
-    }, [messages])
+    }, [messages, onScanComplete])
 
 
     async function handleSend(text) {
@@ -196,67 +174,163 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
         setSending(false)
     }
 
+    const isDashboardState = messages.length <= 1;
+
     return (
-        <div className="chat-window">
-            {messages.map((msg, i) => (
-                <div key={i} className={`msg-row ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                    {msg.role === 'ai' && <div className="msg-avatar ai">S</div>}
-
-                    <div className={`msg-bubble ${msg.role}`} style={{ width: msg.type ? '100%' : 'auto' }}>
-                        <div className="font-mono text-xs mb-1" style={{ color: msg.role === 'ai' ? 'var(--primary-cyan)' : 'var(--text-muted)' }}>
-                            {msg.role === 'ai' ? 'SENTRA_CORE' : 'OPERATOR'}
+        <div className="flex-1 flex flex-col h-full bg-background relative overflow-hidden">
+            {isDashboardState ? (
+                <div className="flex-1 overflow-y-auto p-10 space-y-12">
+                    <section className="max-w-5xl mx-auto w-full">
+                        <div className="flex items-center gap-3 mb-8">
+                            <span className="material-symbols-outlined text-primary text-2xl">auto_awesome</span>
+                            <h2 className="text-xl font-bold text-primary tracking-tight">AI Security Assistant</h2>
                         </div>
+                        <div className="bg-white border border-border-light rounded-2xl p-10 shadow-soft flex flex-col">
+                            <div className="flex-1 flex flex-col justify-center items-center text-center space-y-5 mb-10">
+                                <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-primary border border-border-light">
+                                    <span className="material-symbols-outlined text-2xl">chat_bubble</span>
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-lg font-bold text-slate-900">Intelligent Remediation</h3>
+                                    <p className="text-sm text-slate-500 max-w-sm leading-relaxed mx-auto">
+                                        Ask anything about your security posture or request automated fix scripts for detected vulnerabilities.
+                                    </p>
+                                </div>
+                            </div>
 
-                        {/* Text Content */}
-                        {msg.text && <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{formatMessage(msg.text)}</div>}
+                            <div className="relative max-w-2xl mx-auto w-full">
+                                <form
+                                    onSubmit={(e) => { e.preventDefault(); handleSend(input) }}
+                                    className="bg-slate-50 border border-border-light rounded-xl p-2 flex items-center gap-3 shadow-sm focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/5 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-slate-400 ml-3">psychology</span>
+                                    <input
+                                        type="text"
+                                        value={input}
+                                        onChange={e => setInput(e.target.value)}
+                                        className="bg-transparent border-none focus:ring-0 text-sm flex-1 text-slate-900 placeholder:text-slate-400 outline-none w-full"
+                                        placeholder="Type your security query... (e.g. Scan localhost)"
+                                        disabled={sending}
+                                        autoFocus
+                                    />
+                                    <div className="flex gap-1 shrink-0">
+                                        <button type="button" className="p-2 text-slate-400 hover:text-primary transition-colors">
+                                            <span className="material-symbols-outlined text-xl">attach_file</span>
+                                        </button>
+                                        <button type="submit" disabled={sending || !input.trim()} className="bg-primary hover:bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50">
+                                            {sending ? '...' : 'Send'}
+                                        </button>
+                                    </div>
+                                </form>
+                                <div className="flex flex-wrap gap-2 mt-5 justify-center">
+                                    {['Critical Issues', 'Summarize Web', 'Attack Surface'].map(tag => (
+                                        <button
+                                            key={tag}
+                                            type="button"
+                                            onClick={() => handleSend(`Analyze ${tag.toLowerCase()}`)}
+                                            className="text-[11px] font-bold text-slate-500 px-3 py-1.5 rounded-full border border-border-light hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">
+                                                {tag === 'Critical Issues' ? 'warning' : tag === 'Summarize Web' ? 'language' : 'shield'}
+                                            </span>
+                                            {tag}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            ) : (
+                <div className="flex-1 flex flex-col relative bg-surface overflow-hidden">
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="max-w-4xl mx-auto w-full p-8 pb-32 space-y-8">
+                            {/* Messages Loop */}
+                            {messages.map((msg, i) => {
+                                if (msg.role === 'ai' && msg.id === 'welcome') return null; // Hide welcome message in chat view
 
-                        {/* Widgets */}
-                        {(msg.type === 'scan_running' || msg.type === 'scan_result') && (
-                            <ScanViz scanStage={msg.type === 'scan_result' ? 'complete' : msg.stage} />
-                        )}
+                                return (
+                                    <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                        {/* Avatar */}
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border 
+                                    ${msg.role === 'ai'
+                                                ? 'bg-slate-50 text-primary border-border-light'
+                                                : 'bg-primary text-white border-primary shadow-sm'}`}>
+                                            <span className="material-symbols-outlined text-lg">
+                                                {msg.role === 'ai' ? 'smart_toy' : 'person'}
+                                            </span>
+                                        </div>
 
-                        {msg.type === 'scan_result' && (
-                            <ResultCard
-                                scan={msg.data}
-                                fixes={msg.fixes}
-                                onExport={() => exportPdf(msg.scanId)}
-                            />
-                        )}
+                                        {/* Bubble */}
+                                        <div className={`flex flex-col gap-2 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                            {/* Text Content */}
+                                            {msg.text && (
+                                                <div className={`p-4 text-sm leading-relaxed shadow-sm
+                                            ${msg.role === 'user'
+                                                        ? 'bg-primary text-white rounded-2xl rounded-tr-sm'
+                                                        : 'bg-white text-slate-700 border border-border-light rounded-2xl rounded-tl-sm'}`}>
+                                                    <div style={{ whiteSpace: 'pre-wrap' }}>{formatMessage(msg.text)}</div>
+                                                </div>
+                                            )}
+
+                                            {/* Widgets */}
+                                            {(msg.type === 'scan_running' || msg.type === 'scan_result') && (
+                                                <div className="mt-2 w-full min-w-[320px]">
+                                                    <ScanViz scanStage={msg.type === 'scan_result' ? 'complete' : msg.stage} />
+                                                </div>
+                                            )}
+
+                                            {msg.type === 'scan_result' && (
+                                                <div className="mt-4 w-full min-w-[320px]">
+                                                    <ResultCard
+                                                        scan={msg.data}
+                                                        fixes={msg.fixes}
+                                                        onExport={() => exportPdf(msg.scanId)}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+
+                            {sending && <TacticalLoader />}
+
+                            <div ref={bottomRef} className="h-4" />
+                        </div>
                     </div>
 
-                    {msg.role === 'user' && <div className="msg-avatar user">O</div>}
-                </div>
-            ))}
-
-            {sending && <TacticalLoader />}
-
-            {messages.length === 1 && (
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', justifyContent: 'center' }}>
-                    {SUGGESTIONS.map((s, i) => (
-                        <button key={i} className="btn-cyber" onClick={() => handleSend(s.text)}>
-                            {`> ${s.text}`}
-                        </button>
-                    ))}
+                    {/* Input Bar pinned to bottom */}
+                    <div className="p-6 bg-gradient-to-t from-surface via-slate-50/80 to-transparent shrink-0">
+                        <div className="max-w-3xl mx-auto w-full">
+                            <form
+                                onSubmit={(e) => { e.preventDefault(); handleSend(input) }}
+                                className="bg-white border border-border-light rounded-xl p-2 flex items-center gap-3 shadow-md focus-within:ring-2 focus-within:ring-primary/20 transition-all"
+                            >
+                                <span className="material-symbols-outlined text-slate-400 ml-3">psychology</span>
+                                <input
+                                    className="bg-transparent border-none focus:ring-0 text-sm flex-1 text-slate-900 placeholder:text-slate-400 outline-none w-full"
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    placeholder="Type your security query or command (e.g., Scan localhost)..."
+                                    disabled={sending}
+                                    autoFocus
+                                />
+                                <div className="flex gap-2">
+                                    <button
+                                        type="submit"
+                                        disabled={sending || !input.trim()}
+                                        className="bg-primary hover:bg-slate-800 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2"
+                                    >
+                                        <span>Send</span>
+                                        <span className="material-symbols-outlined text-sm">send</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             )}
-
-            <div ref={bottomRef} style={{ height: '100px' }} />
-
-            <div className="input-bar-wrapper">
-                <div className="cmd-input-group">
-                    <span className="cmd-prompt">root@sentra:~$</span>
-                    <input
-                        className="cmd-input"
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleSend()}
-                        placeholder="Enter command..."
-                        disabled={sending}
-                        autoFocus
-                    />
-                    {sending && <span className="typing-cursor">_</span>}
-                </div>
-            </div>
         </div>
     )
 }
@@ -266,7 +340,7 @@ function formatMessage(text) {
     const parts = text.split(/(\*\*.*?\*\*)/g)
     return parts.map((part, i) => {
         if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={i} style={{ color: 'var(--primary-cyan)' }}>{part.slice(2, -2)}</strong>
+            return <strong key={i} className="font-bold text-primary">{part.slice(2, -2)}</strong>
         }
         return part
     })

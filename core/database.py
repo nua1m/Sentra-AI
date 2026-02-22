@@ -13,6 +13,12 @@ logger = logging.getLogger("sentra.database")
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scans.db")
 
+def delete_scan(scan_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("DELETE FROM scans WHERE id = ?", (scan_id,))
+    conn.commit()
+    conn.close()
+
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)

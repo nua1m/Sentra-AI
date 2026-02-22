@@ -1,45 +1,92 @@
-import { useEffect } from 'react'
+export default function Sidebar({ scans, activeScanId, onSelectScan, onNewScan, onDeleteScan }) {
+    // Ensuring latest entries exist first, checking created_at or timestamp
+    const sortedScans = [...(scans || [])].sort((a, b) => new Date(b.created_at || b.timestamp || Date.now()) - new Date(a.created_at || a.timestamp || Date.now()))
 
-export default function Sidebar({ health, scans, activeScanId, onSelectScan, onNewChat }) {
     return (
-        <aside className="sidebar glass-panel" style={{ borderRight: '1px solid var(--border-glass)' }}>
-            {/* New Chat */}
-            <div
-                className={`sidebar-icon ${!activeScanId ? 'active' : ''}`}
-                onClick={onNewChat}
-                title="New Operation"
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 5v14M5 12h14" />
-                </svg>
+        <aside className="w-64 bg-white border-r border-border-light flex flex-col z-20 shrink-0">
+            <div className="p-8 flex items-center gap-3">
+                <div className="w-9 h-9 rounded bg-primary flex items-center justify-center shadow-sm">
+                    <span className="material-symbols-outlined text-white text-xl">shield_lock</span>
+                </div>
+                <div>
+                    <h1 className="text-base font-bold tracking-tight text-primary">Sentra AI</h1>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Enterprise</p>
+                </div>
             </div>
 
-            <div style={{ width: '60%', height: '1px', background: 'var(--border-glass)', margin: '0.5rem 0' }} />
-
-            {/* History */}
-            <div style={{ flex: 1, overflowY: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', paddingTop: '0.5rem' }}>
-                {scans.map(scan => (
+            <nav className="flex-1 px-4 space-y-1 mt-2 overflow-y-auto">
+                {/* Primary Nav Links */}
+                <div className="space-y-1 mb-8">
                     <div
-                        key={scan.id}
-                        className={`sidebar-icon ${activeScanId === scan.id ? 'active' : ''}`}
-                        onClick={() => onSelectScan(scan.id)}
-                        title={`${scan.target} (${new Date(scan.created_at).toLocaleTimeString()})`}
-                        style={{ position: 'relative' }}
+                        onClick={onNewScan}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-md cursor-pointer transition-all
+                            ${!activeScanId ? 'bg-slate-100 text-primary border-r-[3px] border-primary font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-primary'}
+                        `}
                     >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                        </svg>
-                        {/* Status Dot */}
-                        <div style={{
-                            position: 'absolute', top: '8px', right: '8px',
-                            width: '6px', height: '6px', borderRadius: '50%',
-                            backgroundColor: scan.status === 'complete' ? 'var(--safe-green)' : 'var(--warn-yellow)',
-                            boxShadow: `0 0 5px ${scan.status === 'complete' ? 'var(--safe-green)' : 'var(--warn-yellow)'}`
-                        }} />
+                        <span className="material-symbols-outlined text-[20px]">dashboard</span>
+                        <span className="text-sm">Dashboard</span>
                     </div>
-                ))}
+                </div>
+
+                {/* Dynamic Scan History */}
+                {sortedScans.length > 0 && (
+                    <div className="mb-4">
+                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-2 px-4 mb-2 uppercase tracking-widest">
+                            <span className="material-symbols-outlined text-[13px]">history</span>
+                            Recent Operations
+                        </p>
+                        <div className="space-y-1">
+                            {sortedScans.map(s => {
+                                const validDate = s.created_at || s.timestamp;
+                                const timeString = validDate ? new Date(validDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'NEW';
+
+                                return (
+                                    <div
+                                        key={s.id}
+                                        className={`flex items-center justify-between px-4 py-2.5 rounded-md cursor-pointer transition-colors group ${activeScanId === s.id
+                                            ? 'bg-slate-100 border-r-[3px] border-primary text-primary font-semibold'
+                                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                                            }`}
+                                    >
+                                        <span onClick={() => onSelectScan(s.id)} className="text-[13px] truncate flex-1 min-w-0 pr-2" title={s.target}>{s.target}</span>
+
+                                        <div className="flex items-center gap-1">
+                                            <span onClick={() => onSelectScan(s.id)} className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 font-bold uppercase tracking-wide shrink-0 whitespace-nowrap">
+                                                {timeString}
+                                            </span>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onDeleteScan(s.id); }}
+                                                className="opacity-0 group-hover:opacity-100 hover:text-red-500 text-slate-400 transition-opacity ml-1"
+                                                title="Delete log"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </nav>
+
+            <div className="p-6 mt-auto border-t border-border-light">
+                <div className="mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Storage Quota</p>
+                        <p className="text-[11px] font-bold text-primary">65%</p>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary w-2/3"></div>
+                    </div>
+                </div>
+                <button
+                    onClick={onNewScan}
+                    className="w-full flex justify-center items-center gap-2 bg-primary hover:bg-slate-800 text-white text-sm font-semibold py-2.5 rounded shadow-sm transition-all"
+                >
+                    <span className="material-symbols-outlined text-sm">add</span>
+                    New Target
+                </button>
             </div>
         </aside>
     )
