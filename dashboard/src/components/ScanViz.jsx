@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/card"
+
 const STAGES = [
     { key: 'nmap', label: 'Network Scan', sub: 'Discovery' },
     { key: 'nikto', label: 'Web Audit', sub: 'Vulnerability' },
@@ -43,18 +45,18 @@ export default function ScanViz({ scanStage }) {
     const progress = getProgressWidth(scanStage)
 
     return (
-        <div className="bg-white border border-border-light rounded-xl p-6 mt-4 max-w-2xl w-full shadow-sm">
+        <Card className="p-6 mt-4 max-w-2xl w-full shadow-sm border-border-light">
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary text-xl">
                         {isComplete ? 'task_alt' : 'radar'}
                     </span>
-                    <h3 className="font-bold text-slate-800 tracking-tight">
+                    <h3 className="font-bold text-slate-800 dark:text-white tracking-tight">
                         {isComplete ? 'Operation Complete' : 'Active Scan Sequence'}
                     </h3>
                 </div>
-                <div className="px-3 py-1 bg-slate-50 border border-border-light rounded-md flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-500">{progress}%</span>
+                <div className="px-3 py-1 bg-slate-50 dark:bg-black/20 border border-border-light rounded-md flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{progress}%</span>
                     {!isComplete && (
                         <div className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-pulse"></div>
                     )}
@@ -78,23 +80,23 @@ export default function ScanViz({ scanStage }) {
                         return (
                             <div key={stage.key} className="flex flex-col items-center gap-2 w-20">
                                 {/* Node Circle */}
-                                <div className={`w-8 h-8 rounded-full border-2 bg-white flex items-center justify-center transition-all duration-300
+                                <div className={`w-8 h-8 rounded-full border-2 bg-surface flex items-center justify-center transition-all duration-300
                                     ${state === 'done' ? 'border-emerald-500 text-emerald-500' :
                                         state === 'active' ? 'border-accent-blue text-accent-blue shadow-[0_0_15px_rgba(19,91,236,0.2)]' :
-                                            'border-slate-200 text-slate-300'}`}
+                                            'border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600'}`}
                                 >
                                     {state === 'done' ? (
                                         <span className="material-symbols-outlined text-[16px]">check</span>
                                     ) : state === 'active' ? (
                                         <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span>
                                     ) : (
-                                        <div className="w-2 h-2 rounded-full bg-slate-200"></div>
+                                        <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700"></div>
                                     )}
                                 </div>
 
                                 {/* Labels */}
                                 <div className="text-center">
-                                    <p className={`text-[11px] font-bold ${state === 'active' || state === 'done' ? 'text-slate-800' : 'text-slate-400'}`}>
+                                    <p className={`text-[11px] font-bold ${state === 'active' || state === 'done' ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
                                         {stage.label}
                                     </p>
                                     <p className="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5">{stage.sub}</p>
@@ -106,15 +108,15 @@ export default function ScanViz({ scanStage }) {
             </div>
 
             {/* Status Log */}
-            <div className="bg-slate-50 rounded-lg p-3 border border-border-light flex gap-3 items-center">
+            <div className="bg-slate-50 dark:bg-black/20 rounded-lg p-3 border border-border-light flex gap-3 items-center">
                 <span className="material-symbols-outlined text-slate-400 text-sm">terminal</span>
-                <p className="text-xs font-mono text-slate-600">
-                    <span className="font-bold text-slate-400 mr-2">system&gt;</span>
+                <p className="text-xs font-mono text-slate-600 dark:text-slate-300">
+                    <span className="font-bold text-slate-400 dark:text-slate-500 mr-2">system&gt;</span>
                     {getStatusText(scanStage)}
                     {!isComplete && <span className="animate-pulse ml-1 text-accent-blue">_</span>}
                 </p>
             </div>
-        </div>
+        </Card>
     )
 }
 

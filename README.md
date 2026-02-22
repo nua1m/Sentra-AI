@@ -53,28 +53,38 @@ OPENROUTER_API_KEY=sk-or-v1-your-key-here
 MODEL=moonshotai/kimi-k2.5
 ```
 
-## 🏃 Running the Application
+## 🏃 How to Launch the UI & Backend
 
-### Option A: Web Dashboard (Recommended)
+You need to run both the Backend API and the Frontend Dashboard simultaneously in two separate terminal windows.
 
-You need two terminals for the full web experience.
-
-**Terminal 1 (Backend API):**
+**Terminal 1 (Start the Backend API):**
 ```bash
-cd Sentra-AI
-# Ensure venv is activated
+# 1. Open a new terminal and ensure you are in the project root directory
+
+# 2. Ensure your Python virtual environment is activated!
+# Windows cmd: venv\Scripts\activate.bat
+# Windows PS: .\venv\Scripts\Activate.ps1
+# Mac/Linux: source venv/bin/activate
+
 uvicorn core.main:app --reload
 ```
-*API runs at `http://localhost:8000`*
+*The API is now running at `http://localhost:8000`*
 
-**Terminal 2 (Frontend Dashboard):**
+**Terminal 2 (Start the Web Dashboard UI):**
 ```bash
-cd Sentra-AI/dashboard
+# 1. Open a new terminal and ensure you are in the project root directory
+# 2. Navigate into the dashboard folder
+cd dashboard
+
+# 3. Start the UI
 npm run dev
 ```
-*UI runs at `http://localhost:5173`*
+*The UI is now running at `http://localhost:5173`*
 
-Open your browser to `http://localhost:5173`. Type **"Scan localhost"** in the Intelligent Remediation input to begin!
+### 🚀 Access the Dashboard
+1. Open your web browser and go to `http://localhost:5173`.
+2. Toggle Dark Mode using the Sun/Moon icon in the top right.
+3. Type **"Scan localhost"** in the Intelligent Remediation input box to begin a test scan!
 
 ### Option B: Command Line Interface (CLI)
 

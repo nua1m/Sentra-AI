@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import ScanViz from '../components/ScanViz'
 import ResultCard from '../components/ResultCard'
+import { Button } from "@/components/ui/button"
 import { fetchScan, fetchFixes, exportPdf, startScan } from '../api'
 
 // TACTICAL LOADER
@@ -19,12 +20,12 @@ function TacticalLoader() {
     }, [])
     return (
         <div className="flex gap-4 mb-8">
-            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-primary border border-border-light shrink-0">
+            <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-primary dark:text-white border border-border-light shrink-0">
                 <span className="material-symbols-outlined text-lg">smart_toy</span>
             </div>
-            <div className="bg-white border border-border-light rounded-2xl p-5 shadow-sm max-w-2xl w-full flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary animate-spin" style={{ animationDuration: '3s' }}>sync</span>
-                <span className="text-sm font-medium text-slate-600">{text}</span>
+            <div className="bg-surface border border-border-light rounded-2xl p-5 shadow-sm max-w-2xl w-full flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary dark:text-white animate-spin" style={{ animationDuration: '3s' }}>sync</span>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{text}</span>
             </div>
         </div>
     )
@@ -57,26 +58,32 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
     useEffect(() => {
         if (!activeScanId) return
 
-        const existing = messages.find(m => m.scanId === activeScanId)
-        if (existing) return
-
+        let mounted = true
         const load = async () => {
             try {
                 const data = await fetchScan(activeScanId)
                 if (data.status === 'complete') {
                     try {
                         const fixes = await fetchFixes(activeScanId)
-                        setMessages(prev => [
-                            ...prev,
-                            { id: `req-${Date.now()}`, role: 'user', text: `View Scan: ${data.target}` },
-                            { id: `res-${activeScanId}`, role: 'ai', type: 'scan_result', scanId: activeScanId, data, fixes }
-                        ])
+                        if (mounted) {
+                            setMessages(prev => {
+                                // Prevent strict-mode double appending
+                                if (prev.find(m => m.scanId === activeScanId)) return prev;
+
+                                return [
+                                    ...prev,
+                                    { id: `req-${Date.now()}`, role: 'user', text: `View Scan: ${data.target}` },
+                                    { id: `res-${activeScanId}`, role: 'ai', type: 'scan_result', scanId: activeScanId, data, fixes }
+                                ]
+                            })
+                        }
                     } catch { }
                 }
             } catch { }
         }
         load()
-    }, [activeScanId, messages])
+        return () => { mounted = false }
+    }, [activeScanId])
 
     // Polling Effect for ACTIVE scans
     useEffect(() => {
@@ -185,13 +192,13 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                             <span className="material-symbols-outlined text-primary text-2xl">auto_awesome</span>
                             <h2 className="text-xl font-bold text-primary tracking-tight">AI Security Assistant</h2>
                         </div>
-                        <div className="bg-white border border-border-light rounded-2xl p-10 shadow-soft flex flex-col">
+                        <div className="bg-surface border border-border-light rounded-2xl p-10 shadow-soft flex flex-col">
                             <div className="flex-1 flex flex-col justify-center items-center text-center space-y-5 mb-10">
-                                <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-primary border border-border-light">
+                                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-primary dark:text-white border border-border-light">
                                     <span className="material-symbols-outlined text-2xl">chat_bubble</span>
                                 </div>
                                 <div className="space-y-2">
-                                    <h3 className="text-lg font-bold text-slate-900">Intelligent Remediation</h3>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Intelligent Remediation</h3>
                                     <p className="text-sm text-slate-500 max-w-sm leading-relaxed mx-auto">
                                         Ask anything about your security posture or request automated fix scripts for detected vulnerabilities.
                                     </p>
@@ -201,40 +208,42 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                             <div className="relative max-w-2xl mx-auto w-full">
                                 <form
                                     onSubmit={(e) => { e.preventDefault(); handleSend(input) }}
-                                    className="bg-slate-50 border border-border-light rounded-xl p-2 flex items-center gap-3 shadow-sm focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/5 transition-all"
+                                    className="bg-slate-50 dark:bg-black/20 border border-border-light rounded-xl p-2 flex items-center gap-3 shadow-sm focus-within:bg-surface focus-within:ring-2 focus-within:ring-primary/20 transition-all"
                                 >
                                     <span className="material-symbols-outlined text-slate-400 ml-3">psychology</span>
                                     <input
                                         type="text"
                                         value={input}
                                         onChange={e => setInput(e.target.value)}
-                                        className="bg-transparent border-none focus:ring-0 text-sm flex-1 text-slate-900 placeholder:text-slate-400 outline-none w-full"
+                                        className="bg-transparent border-none focus:ring-0 text-sm flex-1 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none w-full"
                                         placeholder="Type your security query... (e.g. Scan localhost)"
                                         disabled={sending}
                                         autoFocus
                                     />
                                     <div className="flex gap-1 shrink-0">
-                                        <button type="button" className="p-2 text-slate-400 hover:text-primary transition-colors">
+                                        <Button type="button" variant="ghost" size="icon" className="text-slate-400 hover:text-primary rounded-full transition-colors">
                                             <span className="material-symbols-outlined text-xl">attach_file</span>
-                                        </button>
-                                        <button type="submit" disabled={sending || !input.trim()} className="bg-primary hover:bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50">
+                                        </Button>
+                                        <Button type="submit" disabled={sending || !input.trim()} className="rounded-lg text-sm font-bold px-6">
                                             {sending ? '...' : 'Send'}
-                                        </button>
+                                        </Button>
                                     </div>
                                 </form>
                                 <div className="flex flex-wrap gap-2 mt-5 justify-center">
                                     {['Critical Issues', 'Summarize Web', 'Attack Surface'].map(tag => (
-                                        <button
+                                        <Button
                                             key={tag}
                                             type="button"
+                                            variant="outline"
+                                            size="sm"
                                             onClick={() => handleSend(`Analyze ${tag.toLowerCase()}`)}
-                                            className="text-[11px] font-bold text-slate-500 px-3 py-1.5 rounded-full border border-border-light hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                                            className="text-[11px] font-bold text-slate-500 rounded-full flex items-center gap-1.5 h-8"
                                         >
                                             <span className="material-symbols-outlined text-sm">
                                                 {tag === 'Critical Issues' ? 'warning' : tag === 'Summarize Web' ? 'language' : 'shield'}
                                             </span>
                                             {tag}
-                                        </button>
+                                        </Button>
                                     ))}
                                 </div>
                             </div>
@@ -254,8 +263,8 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                         {/* Avatar */}
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border 
                                     ${msg.role === 'ai'
-                                                ? 'bg-slate-50 text-primary border-border-light'
-                                                : 'bg-primary text-white border-primary shadow-sm'}`}>
+                                                ? 'bg-slate-50 dark:bg-white/5 text-primary dark:text-white border-border-light'
+                                                : 'bg-primary text-primary-foreground border-primary shadow-sm'}`}>
                                             <span className="material-symbols-outlined text-lg">
                                                 {msg.role === 'ai' ? 'smart_toy' : 'person'}
                                             </span>
@@ -267,8 +276,8 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                             {msg.text && (
                                                 <div className={`p-4 text-sm leading-relaxed shadow-sm
                                             ${msg.role === 'user'
-                                                        ? 'bg-primary text-white rounded-2xl rounded-tr-sm'
-                                                        : 'bg-white text-slate-700 border border-border-light rounded-2xl rounded-tl-sm'}`}>
+                                                        ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm'
+                                                        : 'bg-surface text-slate-700 dark:text-slate-200 border border-border-light rounded-2xl rounded-tl-sm'}`}>
                                                     <div style={{ whiteSpace: 'pre-wrap' }}>{formatMessage(msg.text)}</div>
                                                 </div>
                                             )}
@@ -301,15 +310,15 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                     </div>
 
                     {/* Input Bar pinned to bottom */}
-                    <div className="p-6 bg-gradient-to-t from-surface via-slate-50/80 to-transparent shrink-0">
+                    <div className="p-6 pb-8 bg-surface shrink-0 border-t border-border-light/50">
                         <div className="max-w-3xl mx-auto w-full">
                             <form
                                 onSubmit={(e) => { e.preventDefault(); handleSend(input) }}
-                                className="bg-white border border-border-light rounded-xl p-2 flex items-center gap-3 shadow-md focus-within:ring-2 focus-within:ring-primary/20 transition-all"
+                                className="bg-surface border border-border-light rounded-xl p-2 flex items-center gap-3 shadow-md focus-within:ring-2 focus-within:ring-primary/20 transition-all"
                             >
                                 <span className="material-symbols-outlined text-slate-400 ml-3">psychology</span>
                                 <input
-                                    className="bg-transparent border-none focus:ring-0 text-sm flex-1 text-slate-900 placeholder:text-slate-400 outline-none w-full"
+                                    className="bg-transparent border-none focus:ring-0 text-sm flex-1 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none w-full"
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     placeholder="Type your security query or command (e.g., Scan localhost)..."
@@ -317,14 +326,14 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                     autoFocus
                                 />
                                 <div className="flex gap-2">
-                                    <button
+                                    <Button
                                         type="submit"
                                         disabled={sending || !input.trim()}
-                                        className="bg-primary hover:bg-slate-800 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2"
+                                        className="rounded-lg text-sm font-bold px-6 flex items-center gap-2"
                                     >
                                         <span>Send</span>
                                         <span className="material-symbols-outlined text-sm">send</span>
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>

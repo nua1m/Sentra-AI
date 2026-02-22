@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import ChatPage from './pages/ChatPage'
 import { fetchHealth, fetchScans, removeScan } from './api'
+import { ThemeProvider } from './components/theme-provider'
 import './index.css'
 
 export default function App() {
@@ -40,26 +41,28 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar
-        health={health}
-        scans={scans}
-        activeScanId={activeScanId}
-        onSelectScan={setActiveScanId}
-        onNewScan={handleNewScan}
-        onDeleteScan={handleDeleteScan}
-      />
-
-      <main className="flex-1 flex flex-col overflow-hidden bg-background">
-        <TopBar scanStage={scanStage} activeScanId={activeScanId} scans={scans} />
-        <ChatPage
-          key={chatSessionId}
+    <ThemeProvider defaultTheme="dark" storageKey="sentra-ui-theme">
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar
+          health={health}
+          scans={scans}
           activeScanId={activeScanId}
-          onScanStarted={(id) => { setActiveScanId(id); refreshScans() }}
-          onScanComplete={refreshScans}
-          onStageChange={setScanStage}
+          onSelectScan={(id) => { setActiveScanId(id); setChatSessionId(Date.now()); }}
+          onNewScan={handleNewScan}
+          onDeleteScan={handleDeleteScan}
         />
-      </main>
-    </div>
+
+        <main className="flex-1 flex flex-col overflow-hidden bg-background">
+          <TopBar scanStage={scanStage} activeScanId={activeScanId} scans={scans} />
+          <ChatPage
+            key={chatSessionId}
+            activeScanId={activeScanId}
+            onScanStarted={(id) => { setActiveScanId(id); refreshScans() }}
+            onScanComplete={refreshScans}
+            onStageChange={setScanStage}
+          />
+        </main>
+      </div>
+    </ThemeProvider>
   )
 }
