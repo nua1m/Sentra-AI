@@ -21,6 +21,7 @@ def init_db():
             id TEXT PRIMARY KEY,
             target TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'pending',
+            scan_stage TEXT,
             nmap TEXT,
             nikto TEXT,
             analysis TEXT,
@@ -29,6 +30,11 @@ def init_db():
             completed_at TEXT
         )
     """)
+    # Migration for existing DB
+    try:
+        conn.execute("ALTER TABLE scans ADD COLUMN scan_stage TEXT")
+    except sqlite3.OperationalError:
+        pass # Column likely exists
     conn.commit()
     conn.close()
     logger.info(f"Database initialized at {DB_PATH}")
@@ -39,10 +45,11 @@ def save_scan(scan_id: str, data: dict):
     fixes_json = json.dumps(data.get("fixes")) if data.get("fixes") else None
     
     conn.execute("""
-        INSERT INTO scans (id, target, status, nmap, nikto, analysis, fixes, created_at, completed_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO scans (id, target, status, scan_stage, nmap, nikto, analysis, fixes, created_at, completed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             status=excluded.status,
+            scan_stage=excluded.scan_stage,
             nmap=excluded.nmap,
             nikto=excluded.nikto,
             analysis=excluded.analysis,
@@ -52,6 +59,7 @@ def save_scan(scan_id: str, data: dict):
         scan_id,
         data.get("target", ""),
         data.get("status", "pending"),
+        data.get("scan_stage"),
         data.get("nmap"),
         data.get("nikto"),
         data.get("analysis"),
@@ -91,7 +99,7 @@ def update_scan_status(scan_id: str, status: str, **kwargs):
     updates = ["status = ?"]
     values = [status]
     
-    for key in ["nmap", "nikto", "analysis"]:
+    for key in ["scan_stage", "nmap", "nikto", "analysis"]:
         if key in kwargs:
             updates.append(f"{key} = ?")
             values.append(kwargs[key])

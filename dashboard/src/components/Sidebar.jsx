@@ -1,56 +1,45 @@
 import { useEffect } from 'react'
-import { fetchScans } from '../api'
-
-function formatDate(iso) {
-    if (!iso) return ''
-    const d = new Date(iso)
-    const now = new Date()
-    const isToday = d.toDateString() === now.toDateString()
-    if (isToday) return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-}
 
 export default function Sidebar({ health, scans, activeScanId, onSelectScan, onNewChat }) {
     return (
-        <aside className="sidebar">
-            <div className="sidebar-header">
-                <div className="sidebar-logo">S</div>
-                <div className="sidebar-brand">Sentra<span>.AI</span></div>
+        <aside className="sidebar glass-panel" style={{ borderRight: '1px solid var(--border-glass)' }}>
+            {/* New Chat */}
+            <div
+                className={`sidebar-icon ${!activeScanId ? 'active' : ''}`}
+                onClick={onNewChat}
+                title="New Operation"
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14M5 12h14" />
+                </svg>
             </div>
 
-            <div className="sidebar-status">
-                <div className={`status-dot ${health ? '' : 'offline'}`}></div>
-                {health ? 'System Online' : 'Offline'}
-            </div>
+            <div style={{ width: '60%', height: '1px', background: 'var(--border-glass)', margin: '0.5rem 0' }} />
 
-            <button className="new-chat-btn" onClick={onNewChat}>
-                + New Chat
-            </button>
-
-            <div className="sidebar-label">Scan History</div>
-
-            <div className="scan-history">
-                {scans.length === 0 ? (
-                    <div style={{ padding: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                        No scans yet
+            {/* History */}
+            <div style={{ flex: 1, overflowY: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', paddingTop: '0.5rem' }}>
+                {scans.map(scan => (
+                    <div
+                        key={scan.id}
+                        className={`sidebar-icon ${activeScanId === scan.id ? 'active' : ''}`}
+                        onClick={() => onSelectScan(scan.id)}
+                        title={`${scan.target} (${new Date(scan.created_at).toLocaleTimeString()})`}
+                        style={{ position: 'relative' }}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                        {/* Status Dot */}
+                        <div style={{
+                            position: 'absolute', top: '8px', right: '8px',
+                            width: '6px', height: '6px', borderRadius: '50%',
+                            backgroundColor: scan.status === 'complete' ? 'var(--safe-green)' : 'var(--warn-yellow)',
+                            boxShadow: `0 0 5px ${scan.status === 'complete' ? 'var(--safe-green)' : 'var(--warn-yellow)'}`
+                        }} />
                     </div>
-                ) : (
-                    scans.map(scan => (
-                        <div
-                            key={scan.id}
-                            className={`history-item ${activeScanId === scan.id ? 'active' : ''}`}
-                            onClick={() => onSelectScan(scan.id)}
-                        >
-                            <div className="history-icon">
-                                {scan.status === 'complete' ? '✓' : '◉'}
-                            </div>
-                            <div className="history-info">
-                                <div className="history-target">{scan.target}</div>
-                                <div className="history-date">{formatDate(scan.created_at)}</div>
-                            </div>
-                        </div>
-                    ))
-                )}
+                ))}
             </div>
         </aside>
     )

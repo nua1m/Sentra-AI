@@ -3,102 +3,169 @@ import ScanViz from '../components/ScanViz'
 import ResultCard from '../components/ResultCard'
 import { fetchScan, fetchFixes, exportPdf, startScan } from '../api'
 
+// TACTICAL LOADER (Updated Text)
+function TacticalLoader() {
+    const [text, setText] = useState('Establishing Uplink...')
+    useEffect(() => {
+        const steps = [
+            'Establishing Secure Uplink...',
+            'Verifying Personnel ID...',
+            'Awaiting Neural Response...',
+            'Synchronizing Data Stream...',
+            'Processing Request...'
+        ]
+        let i = 0
+        const interval = setInterval(() => { setText(steps[i++ % steps.length]) }, 800)
+        return () => clearInterval(interval)
+    }, [])
+    return (
+        <div className="msg-row">
+            <div className="msg-avatar ai">S</div>
+            <div className="msg-bubble ai" style={{ opacity: 0.8 }}>
+                <div className="font-mono text-cyan-500 text-xs mb-1">SENTRA_CORE // LINK_ACTIVE</div>
+                <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.8rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="scan-spinner" style={{ width: '12px', height: '12px', borderColor: 'var(--text-dim)', borderTopColor: 'var(--primary-cyan)' }}></span>
+                    {text}
+                </div>
+            </div>
+        </div>
+    )
+}
+
 const WELCOME_MSG = {
+    id: 'welcome',
     role: 'ai',
-    text: "Welcome to Sentra.AI — your AI cybersecurity assistant.\n\nI can scan targets for vulnerabilities, analyze results, and generate fix commands.\n\nTry saying something like **\"Scan localhost\"** or ask me a cybersecurity question.",
+    text: "Initializing Sentra.AI Protocol v2.5...\n\nSystems Online. Neural Engine Active.\n\nAwaiting operator command. Say **\"Scan localhost\"** to begin target acquisition.",
 }
 
 const SUGGESTIONS = [
-    { icon: '📡', text: 'Scan localhost for open ports' },
-    { icon: '🔍', text: 'What is a port scan?' },
-    { icon: '🛡️', text: 'How to secure an SSH server?' },
-    { icon: '⚡', text: 'Scan 192.168.1.1' },
+    { text: 'Scan localhost' },
+    { text: 'Explain port scanning' },
+    { text: 'Secure SSH service' },
 ]
 
 export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }) {
     const [messages, setMessages] = useState([WELCOME_MSG])
     const [input, setInput] = useState('')
     const [sending, setSending] = useState(false)
-    const [scanPolling, setScanPolling] = useState(null) // { scanId, stage }
-    const [scanResult, setScanResult] = useState(null)   // completed scan data
-    const [fixesData, setFixesData] = useState(null)
     const bottomRef = useRef(null)
 
     // Auto-scroll
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages, scanPolling, scanResult])
+    }, [messages, sending])
 
-    // Load past scan when clicking sidebar
+    // Load past scan from sidebar
     useEffect(() => {
-        if (!activeScanId) {
-            setMessages([WELCOME_MSG])
-            setScanResult(null)
-            setFixesData(null)
-            setScanPolling(null)
-            return
-        }
+        if (!activeScanId) return
 
-        const loadScan = async () => {
+        // Check if we already have this scan in history to avoid duplication
+        const existing = messages.find(m => m.scanId === activeScanId)
+        if (existing) return
+
+        const load = async () => {
             try {
                 const data = await fetchScan(activeScanId)
                 if (data.status === 'complete') {
-                    setMessages([
-                        WELCOME_MSG,
-                        { role: 'user', text: `Scan ${data.target}` },
-                        { role: 'ai', text: `✅ Target **${data.target}** — scan complete.` },
-                    ])
-                    setScanPolling({ scanId: activeScanId, stage: 'complete' })
-                    setScanResult(data)
                     try {
                         const fixes = await fetchFixes(activeScanId)
-                        setFixesData(fixes)
+                        setMessages(prev => [
+                            ...prev,
+                            { id: `req-${Date.now()}`, role: 'user', text: `View Scan: ${data.target}` },
+                            { id: `res-${activeScanId}`, role: 'ai', type: 'scan_result', scanId: activeScanId, data, fixes }
+                        ])
                     } catch { }
                 }
             } catch { }
         }
-        loadScan()
+        load()
     }, [activeScanId])
 
-    // Polling for active scan
+    // Polling Effect for ACTIVE scans
     useEffect(() => {
-        if (!scanPolling || scanPolling.stage === 'complete') return
+        // Find any message that is 'scan_running'
+        const activeScanMsg = messages.find(m => m.type === 'scan_running')
+        if (!activeScanMsg) return
 
         const interval = setInterval(async () => {
             try {
-                const data = await fetchScan(scanPolling.scanId)
-                setScanPolling(prev => ({ ...prev, stage: data.scan_stage || data.status }))
+                const data = await fetchScan(activeScanMsg.scanId)
 
+                // Update the message state
+                setMessages(prev => prev.map(m => {
+                    if (m.scanId === activeScanMsg.scanId) {
+
+                        // Current stage from backend
+                        const serverStage = data.scan_stage || data.status
+                        const isComplete = data.status === 'complete'
+
+                        // STAGE ORDER DEFINITION
+                        const STAGES = ['nmap_running', 'nmap_done', 'nikto_running', 'nikto_done', 'analyzing', 'generating_fixes', 'complete']
+
+                        // Helper to get index
+                        const getStageIdx = (s) => STAGES.indexOf(s)
+
+                        const currentIdx = getStageIdx(m.stage || 'nmap_running')
+                        const serverIdx = getStageIdx(serverStage)
+
+                        // If already complete in UI, do nothing
+                        if (m.type === 'scan_result') return m
+
+                        // LOGIC: If backend is ahead, only advance ONE step per tick to animate
+                        // If backend is complete, we still step through until we hit 'complete'
+
+                        let nextStage = m.stage
+                        let nextType = m.type
+                        let nextData = m.data
+                        let nextFixes = m.fixes
+
+                        if (currentIdx < serverIdx || (isComplete && currentIdx < STAGES.length - 1)) {
+                            // Advance one step
+                            nextStage = STAGES[currentIdx + 1]
+                        } else {
+                            // Sync with server if we caught up (or server corresponds to current)
+                            nextStage = serverStage
+                        }
+
+                        // If we finally hit complete in UI
+                        if (nextStage === 'complete' || (isComplete && currentIdx >= STAGES.indexOf('generating_fixes'))) {
+                            onScanComplete?.()
+                            // Populate data
+                            return { ...m, type: 'scan_result', data, fixes: null, stage: 'complete' }
+                        }
+
+                        return { ...m, stage: nextStage }
+                    }
+                    return m
+                }))
+
+                // Formatting result if complete (prefetch fixes)
                 if (data.status === 'complete') {
-                    clearInterval(interval)
-                    setScanResult(data)
-                    addMessage('ai', `✅ Scan of **${data.target}** is complete! Here are the results:`)
-                    onScanComplete?.()
                     try {
-                        const fixes = await fetchFixes(scanPolling.scanId)
-                        setFixesData(fixes)
+                        const fixes = await fetchFixes(activeScanMsg.scanId)
+                        setMessages(prev => prev.map(m =>
+                            m.scanId === activeScanMsg.scanId ? { ...m, fixes } : m
+                        ))
                     } catch { }
                 }
+
             } catch { }
-        }, 1500)
+        }, 2000) // 2s per step for deliberate, cinematic sequencing
 
         return () => clearInterval(interval)
-    }, [scanPolling?.scanId, scanPolling?.stage])
+    }, [messages])
 
-    function addMessage(role, text) {
-        setMessages(prev => [...prev, { role, text }])
-    }
 
     async function handleSend(text) {
         const msg = text || input.trim()
         if (!msg || sending) return
 
         setInput('')
-        addMessage('user', msg)
+        setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: msg }])
         setSending(true)
 
         try {
-            const res = await fetch('/api/chat', {
+            const res = await fetch('http://localhost:8000/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg })
@@ -106,139 +173,100 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
             const data = await res.json()
 
             if (data.type === 'action_required' && data.action === 'start_scan') {
-                addMessage('ai', `✅ Target **${data.target}** verified. Launching scan...`)
-
-                // Start scan
                 const scanRes = await startScan(data.target)
                 if (scanRes.scan_id) {
                     onScanStarted?.(scanRes.scan_id)
-                    setScanPolling({ scanId: scanRes.scan_id, stage: 'nmap_running' })
-                    setScanResult(null)
-                    setFixesData(null)
+                    setMessages(prev => [...prev, {
+                        id: scanRes.scan_id,
+                        role: 'ai',
+                        type: 'scan_running',
+                        scanId: scanRes.scan_id,
+                        stage: 'nmap_running',
+                        target: data.target
+                    }])
                 } else {
-                    addMessage('ai', `❌ Failed to start scan: ${scanRes.detail || 'Unknown error'}`)
+                    setMessages(prev => [...prev, { role: 'ai', text: `[ERROR] Launch Failed: ${scanRes.detail}` }])
                 }
-            } else if (data.type === 'error') {
-                addMessage('ai', data.message)
             } else {
-                addMessage('ai', data.message || 'No response.')
+                setMessages(prev => [...prev, { role: 'ai', text: data.message || 'No response.' }])
             }
         } catch (err) {
-            addMessage('ai', `❌ Connection error: ${err.message}`)
+            setMessages(prev => [...prev, { role: 'ai', text: `[CRITICAL] Connection Lost: ${err.message}` }])
         }
-
         setSending(false)
     }
 
-    function handleKeyDown(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            handleSend()
-        }
-    }
-
-    const showWelcome = messages.length <= 1 && !scanPolling && !scanResult
-
     return (
-        <div className="chat-area">
-            <div className="chat-messages">
-                {showWelcome ? (
-                    <div className="welcome">
-                        <div className="welcome-logo">S</div>
-                        <h1 className="welcome-title">Sentra.AI</h1>
-                        <p className="welcome-text">
-                            Your AI-powered cybersecurity assistant. I automate network scanning,
-                            vulnerability analysis, and fix generation — all in one place.
-                        </p>
-                        <div className="welcome-suggestions">
-                            {SUGGESTIONS.map((s, i) => (
-                                <button key={i} className="suggestion-btn" onClick={() => handleSend(s.text)}>
-                                    <div className="suggestion-icon">{s.icon}</div>
-                                    <div className="suggestion-text">{s.text}</div>
-                                </button>
-                            ))}
+        <div className="chat-window">
+            {messages.map((msg, i) => (
+                <div key={i} className={`msg-row ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                    {msg.role === 'ai' && <div className="msg-avatar ai">S</div>}
+
+                    <div className={`msg-bubble ${msg.role}`} style={{ width: msg.type ? '100%' : 'auto' }}>
+                        <div className="font-mono text-xs mb-1" style={{ color: msg.role === 'ai' ? 'var(--primary-cyan)' : 'var(--text-muted)' }}>
+                            {msg.role === 'ai' ? 'SENTRA_CORE' : 'OPERATOR'}
                         </div>
+
+                        {/* Text Content */}
+                        {msg.text && <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{formatMessage(msg.text)}</div>}
+
+                        {/* Widgets */}
+                        {(msg.type === 'scan_running' || msg.type === 'scan_result') && (
+                            <ScanViz scanStage={msg.type === 'scan_result' ? 'complete' : msg.stage} />
+                        )}
+
+                        {msg.type === 'scan_result' && (
+                            <ResultCard
+                                scan={msg.data}
+                                fixes={msg.fixes}
+                                onExport={() => exportPdf(msg.scanId)}
+                            />
+                        )}
                     </div>
-                ) : (
-                    <>
-                        {messages.map((msg, i) => (
-                            <div key={i} className="message">
-                                <div className={`message-avatar ${msg.role === 'ai' ? 'ai' : 'user'}`}>
-                                    {msg.role === 'ai' ? 'S' : 'U'}
-                                </div>
-                                <div className="message-content">
-                                    <div className="message-sender">{msg.role === 'ai' ? 'Sentra.AI' : 'You'}</div>
-                                    <div className="message-text">{formatMessage(msg.text)}</div>
-                                </div>
-                            </div>
-                        ))}
 
-                        {/* Live Scan Visualization */}
-                        {scanPolling && (
-                            <div className="message">
-                                <div className="message-avatar ai">S</div>
-                                <div className="message-content">
-                                    <ScanViz scanStage={scanPolling.stage} />
-                                </div>
-                            </div>
-                        )}
+                    {msg.role === 'user' && <div className="msg-avatar user">O</div>}
+                </div>
+            ))}
 
-                        {/* Results Card */}
-                        {scanResult && scanResult.status === 'complete' && (
-                            <div className="message">
-                                <div className="message-avatar ai">S</div>
-                                <div className="message-content">
-                                    <ResultCard
-                                        scan={scanResult}
-                                        fixes={fixesData}
-                                        onExport={() => exportPdf(scanPolling?.scanId)}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
-                <div ref={bottomRef} />
-            </div>
+            {sending && <TacticalLoader />}
 
-            {/* Input */}
-            <div className="chat-input-area">
-                <div className="chat-input-wrapper">
+            {messages.length === 1 && (
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', justifyContent: 'center' }}>
+                    {SUGGESTIONS.map((s, i) => (
+                        <button key={i} className="btn-cyber" onClick={() => handleSend(s.text)}>
+                            {`> ${s.text}`}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div ref={bottomRef} style={{ height: '100px' }} />
+
+            <div className="input-bar-wrapper">
+                <div className="cmd-input-group">
+                    <span className="cmd-prompt">root@sentra:~$</span>
                     <input
-                        className="chat-input"
-                        placeholder={sending ? 'Processing...' : 'Type a message or "scan <target>"...'}
+                        className="cmd-input"
                         value={input}
                         onChange={e => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={e => e.key === 'Enter' && handleSend()}
+                        placeholder="Enter command..."
                         disabled={sending}
                         autoFocus
                     />
-                    <button
-                        className="send-btn"
-                        onClick={() => handleSend()}
-                        disabled={sending || !input.trim()}
-                    >
-                        <svg className="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13" />
-                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                        </svg>
-                    </button>
-                </div>
-                <div className="input-hint">
-                    Sentra.AI uses Nmap + Nikto for scanning. Targets require verification (sentra-verify.txt).
+                    {sending && <span className="typing-cursor">_</span>}
                 </div>
             </div>
         </div>
     )
 }
 
-// Simple bold formatting for **text**
 function formatMessage(text) {
     if (!text) return text
     const parts = text.split(/(\*\*.*?\*\*)/g)
     return parts.map((part, i) => {
         if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={i}>{part.slice(2, -2)}</strong>
+            return <strong key={i} style={{ color: 'var(--primary-cyan)' }}>{part.slice(2, -2)}</strong>
         }
         return part
     })

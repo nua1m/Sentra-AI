@@ -47,13 +47,16 @@ class Scanner:
                 subprocess.run,
                 cmd,
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=120 # Safety timeout for Nmap
             )
             
             if result.returncode != 0:
                 return f"Nmap Error (Code {result.returncode}): {result.stderr}"
                 
             return result.stdout
+        except subprocess.TimeoutExpired:
+            return "Error: Nmap scan timed out."
         except Exception as e:
             return f"Execution Error: {repr(e)} | Command: {cmd} | Path: {self.nmap_path}"
 
@@ -82,8 +85,12 @@ class Scanner:
                 subprocess.run,
                 cmd,
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=75  # Hard timeout to prevent hanging
             )
             return result.stdout
+        except subprocess.TimeoutExpired:
+            logger.error(f"Nikto scan timed out on {target}")
+            return "Error: Nikto scan timed out after 75 seconds."
         except Exception as e:
             return f"Nikto Execution Error: {repr(e)}"

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
+import TopBar from './components/TopBar'
 import ChatPage from './pages/ChatPage'
 import { fetchHealth, fetchScans } from './api'
 import './index.css'
@@ -14,16 +15,16 @@ export default function App() {
     fetchScans().then(setScans).catch(() => { })
 
     const interval = setInterval(() => {
-      fetchHealth().then(setHealth).catch(() => setHealth(null))
+      fetchHealth().then(setHealth).catch(() => { })
       fetchScans().then(setScans).catch(() => { })
-    }, 8000)
+    }, 5000)
     return () => clearInterval(interval)
   }, [])
 
   const refreshScans = () => fetchScans().then(setScans).catch(() => { })
 
   return (
-    <div className="app-layout">
+    <div className="app-container">
       <Sidebar
         health={health}
         scans={scans}
@@ -31,11 +32,15 @@ export default function App() {
         onSelectScan={setActiveScanId}
         onNewChat={() => setActiveScanId(null)}
       />
-      <ChatPage
-        activeScanId={activeScanId}
-        onScanStarted={(id) => { setActiveScanId(id); refreshScans() }}
-        onScanComplete={refreshScans}
-      />
+
+      <div className="main-content">
+        <TopBar />
+        <ChatPage
+          activeScanId={activeScanId}
+          onScanStarted={(id) => { setActiveScanId(id); refreshScans() }}
+          onScanComplete={refreshScans}
+        />
+      </div>
     </div>
   )
 }

@@ -64,11 +64,19 @@ def analyze_results(nmap_output: str, nikto_output: str = "No Nikto scan perform
     """
     return ask_kimi(prompt)
 
+import re
+
 def classify_intent(message: str) -> dict:
     """
     Determines user intent from CLI input.
     Returns JSON: {"action": "scan"|"chat", "target": "..."}
     """
+    # 1. Faster Regex Check (Skips AI latency)
+    scan_match = re.search(r"(?:scan|check|test|analyze)\s+([a-zA-Z0-9.-]+)", message, re.IGNORECASE)
+    if scan_match:
+        return {"action": "scan", "target": scan_match.group(1), "scan_type": "full"}
+        
+    # 2. AI Fallback (Slow but smart)
     prompt = f"""
     Extract intent from: "{message}"
     Return JSON only:

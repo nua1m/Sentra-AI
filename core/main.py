@@ -40,30 +40,32 @@ class ScanRequest(BaseModel):
 async def run_background_scan(scan_id: str, target: str):
     scans[scan_id]["status"] = "scanning"
     scans[scan_id]["scan_stage"] = "nmap_running"
-    update_scan_status(scan_id, "scanning")
+    update_scan_status(scan_id, "scanning", scan_stage="nmap_running")
     
     # 1. Run Nmap
     nmap_out = await scanner.run_nmap_scan(target)
     scans[scan_id]["nmap"] = nmap_out
     scans[scan_id]["scan_stage"] = "nmap_done"
-    update_scan_status(scan_id, "scanning", nmap=nmap_out)
+    update_scan_status(scan_id, "scanning", nmap=nmap_out, scan_stage="nmap_done")
     
     # 2. Run Nikto
     scans[scan_id]["scan_stage"] = "nikto_running"
+    update_scan_status(scan_id, "scanning", scan_stage="nikto_running") # Should update before running generic wait
     nikto_out = await scanner.run_nikto_scan(target)
     scans[scan_id]["nikto"] = nikto_out
     scans[scan_id]["scan_stage"] = "nikto_done"
-    update_scan_status(scan_id, "scanning", nikto=nikto_out)
+    update_scan_status(scan_id, "scanning", nikto=nikto_out, scan_stage="nikto_done")
     
     # 3. AI Analysis
     scans[scan_id]["status"] = "analyzing"
     scans[scan_id]["scan_stage"] = "analyzing"
-    update_scan_status(scan_id, "analyzing")
+    update_scan_status(scan_id, "analyzing", scan_stage="analyzing")
     analysis = analyze_results(nmap_out, nikto_out)
     scans[scan_id]["analysis"] = analysis
     
     # 4. Generate fixes
     scans[scan_id]["scan_stage"] = "generating_fixes"
+    update_scan_status(scan_id, "analyzing", scan_stage="generating_fixes")
     from .remediation import generate_fixes
     fixes = generate_fixes(nmap_output=nmap_out, nikto_output=nikto_out)
     scans[scan_id]["fixes"] = fixes
@@ -72,7 +74,7 @@ async def run_background_scan(scan_id: str, target: str):
     scans[scan_id]["status"] = "complete"
     scans[scan_id]["scan_stage"] = "complete"
     scans[scan_id]["completed_at"] = datetime.now().isoformat()
-    update_scan_status(scan_id, "complete", analysis=analysis, fixes=fixes)
+    update_scan_status(scan_id, "complete", analysis=analysis, fixes=fixes, scan_stage="complete")
 
 
 @app.get("/")

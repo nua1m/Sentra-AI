@@ -1,8 +1,8 @@
 const STAGES = [
-    { key: 'nmap', label: 'NMAP', icon: '📡' },
-    { key: 'nikto', label: 'NIKTO', icon: '🌐' },
-    { key: 'ai', label: 'AI', icon: '🧠' },
-    { key: 'fixes', label: 'FIXES', icon: '🛡️' },
+    { key: 'nmap', label: 'NET.SCAN', sub: 'PORT DISCOVERY' },
+    { key: 'nikto', label: 'WEB.VULN', sub: 'CGI/SSL AUDIT' },
+    { key: 'ai', label: 'AI.ANALYSIS', sub: 'THREAT INTEL' },
+    { key: 'fixes', label: 'GEN.FIXES', sub: 'BLUE TEAM OPS' },
 ]
 
 function getStageState(stageKey, scanStage) {
@@ -25,62 +25,75 @@ function getStageState(stageKey, scanStage) {
     return 'pending'
 }
 
-function getStatusMessage(scanStage) {
-    const messages = {
-        'nmap_running': 'Running Nmap network scan...',
-        'nmap_done': 'Nmap complete. Starting Nikto...',
-        'nikto_running': 'Running Nikto web vulnerability scan...',
-        'nikto_done': 'Nikto complete. Starting AI analysis...',
-        'analyzing': 'AI is analyzing the results...',
-        'generating_fixes': 'Generating Blue Team fix commands...',
-        'complete': 'Scan complete!',
-    }
-    return messages[scanStage] || 'Preparing scan...'
-}
-
-function isConnectorDone(idx, scanStage) {
+function getProgressWidth(scanStage) {
     const stageMap = {
-        'nmap_done': 0, 'nikto_running': 0,
-        'nikto_done': 1, 'analyzing': 1,
-        'generating_fixes': 2,
-        'complete': 3,
+        'nmap_running': 12,
+        'nmap_done': 25,
+        'nikto_running': 37,
+        'nikto_done': 50,
+        'analyzing': 62,
+        'generating_fixes': 87,
+        'complete': 100,
     }
-    const doneUpTo = stageMap[scanStage] ?? -1
-    return idx <= doneUpTo - 1
+    return stageMap[scanStage] || 0
 }
 
 export default function ScanViz({ scanStage }) {
     const isComplete = scanStage === 'complete'
+    const progress = getProgressWidth(scanStage)
 
     return (
-        <div className="scan-viz">
-            <div className="scan-viz-title">
-                {isComplete ? '✅ Scan Pipeline Complete' : '⚡ Live Scan Progress'}
+        <div className="viz-hud">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div style={{ fontFamily: 'Orbitron', fontSize: '0.8rem', color: isComplete ? 'var(--safe-green)' : 'var(--primary-cyan)' }}>
+                    {isComplete ? 'MISSION COMPLETE' : 'SEQUENCE RUNNING...'}
+                </div>
+                <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.7rem', color: 'var(--primary-cyan)' }}>
+                    {progress}%
+                </div>
             </div>
 
-            <div className="scan-stages">
-                {STAGES.map((stage, i) => {
+            <div className="pipeline-track">
+                <div className="pipeline-line" />
+                <div className="pipeline-line-fill" style={{ width: `${progress}%` }} />
+
+                {STAGES.map((stage) => {
                     const state = getStageState(stage.key, scanStage)
                     return (
-                        <div key={stage.key} style={{ display: 'contents' }}>
-                            <div className="scan-stage">
-                                <div className={`stage-node ${state}`}>
-                                    {state === 'done' ? '✓' : stage.icon}
-                                </div>
-                                <span className={`stage-label ${state}`}>{stage.label}</span>
+                        <div key={stage.key} className={`pipeline-step ${state}`}>
+                            <div className="step-box">
+                                <div style={{ fontWeight: 700 }}>{stage.label}</div>
+                                <div style={{ fontSize: '0.55rem', opacity: 0.7 }}>{stage.sub}</div>
                             </div>
-                            {i < STAGES.length - 1 && (
-                                <div className={`stage-connector ${isConnectorDone(i, scanStage) ? 'done' : ''}`} />
-                            )}
+                            {state === 'active' && <div className="text-glow" style={{ fontSize: '10px' }}>EXECUTING</div>}
                         </div>
                     )
                 })}
             </div>
 
-            <div className="scan-status-text">
-                {!isComplete && <div className="scan-spinner" />}
-                {getStatusMessage(scanStage)}
+            <div style={{
+                fontFamily: 'JetBrains Mono', fontSize: '0.75rem', color: 'var(--text-dim)',
+                borderTop: '1px solid var(--border-glass)', paddingTop: '0.8rem', marginTop: '0.5rem',
+                display: 'flex', gap: '0.5rem', alignItems: 'center'
+            }}>
+                <span style={{ color: 'var(--primary-cyan)' }}>ROOT@SENTRA:~$</span>
+                <span className={!isComplete ? "typing-cursor" : ""}>
+                    {getStatusText(scanStage)}
+                </span>
             </div>
         </div>
     )
+}
+
+function getStatusText(stage) {
+    const map = {
+        'nmap_running': 'exec nmap -sV -p- --script vuln <TARGET>',
+        'nmap_done': 'nmap process finished. exit code 0.',
+        'nikto_running': 'EXEC NIKTO WEB AUDIT (MAX 60s)...',
+        'nikto_done': 'nikto export generated. parsing xml...',
+        'analyzing': 'initiating neural analysis context...',
+        'generating_fixes': 'querying remediation database...',
+        'complete': 'all sequences finished. ready for report.',
+    }
+    return map[stage] || 'initializing scan sequence...'
 }
