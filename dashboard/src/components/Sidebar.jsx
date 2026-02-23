@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 
 export default function Sidebar({ scans, activeScanId, onSelectScan, onNewScan, onDeleteScan }) {
@@ -73,15 +74,7 @@ export default function Sidebar({ scans, activeScanId, onSelectScan, onNewScan, 
             </nav>
 
             <div className="p-6 mt-auto border-t border-border-light">
-                <div className="mb-6">
-                    <div className="flex justify-between items-center mb-2">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Storage Quota</p>
-                        <p className="text-[11px] font-bold text-primary">65%</p>
-                    </div>
-                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary w-2/3"></div>
-                    </div>
-                </div>
+                <SystemStatus />
                 <Button
                     onClick={onNewScan}
                     className="w-full flex justify-center items-center gap-2 text-sm font-semibold py-5 rounded transition-all"
@@ -91,5 +84,43 @@ export default function Sidebar({ scans, activeScanId, onSelectScan, onNewScan, 
                 </Button>
             </div>
         </aside>
+    )
+}
+
+function SystemStatus() {
+    const [health, setHealth] = useState(null)
+
+    useEffect(() => {
+        const check = () => fetch('/api/health').then(r => r.json()).then(setHealth).catch(() => setHealth(null))
+        check()
+        const id = setInterval(check, 10000)
+        return () => clearInterval(id)
+    }, [])
+
+    const isOnline = health?.status === 'online'
+
+    return (
+        <div className="mb-4">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">System Status</p>
+            <div className="space-y-1.5">
+                <StatusRow label="API Server" ok={isOnline} />
+                <StatusRow label="Nmap" ok={health?.nmap_available} />
+                <StatusRow label="Nikto" ok={health?.nikto_available} />
+            </div>
+        </div>
+    )
+}
+
+function StatusRow({ label, ok }) {
+    return (
+        <div className="flex items-center justify-between">
+            <span className="text-[11px] text-slate-500">{label}</span>
+            <div className="flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-emerald-500' : ok === false ? 'bg-red-500' : 'bg-slate-300'}`} />
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${ok ? 'text-emerald-600' : ok === false ? 'text-red-500' : 'text-slate-400'}`}>
+                    {ok ? 'Online' : ok === false ? 'Offline' : '...'}
+                </span>
+            </div>
+        </div>
     )
 }
