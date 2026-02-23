@@ -2,6 +2,7 @@ import shutil
 import subprocess
 import logging
 import asyncio
+import time
 
 logger = logging.getLogger("sentra.scanner")
 
@@ -30,44 +31,84 @@ class Scanner:
     def is_available(self) -> bool:
         return bool(self.nmap_path)
 
-    async def run_nmap_scan(self, target: str) -> str:
-        """
-        Runs a standard Nmap scan (Fast mode).
-        Uses asyncio.to_thread for better Windows support.
-        """
-        if not self.nmap_path:
-            return "Error: Nmap not found. Please install Nmap."
-
-        logger.info(f"Starting Nmap on {target}")
-        cmd = [self.nmap_path, "-F", "-T4", target]
-        
+    async def _stream_subprocess(self, cmd, timeout=120):
         try:
-            # Run blocking subprocess in a separate thread
-            result = await asyncio.to_thread(
-                subprocess.run,
+            import threading
+            import sys
+            
+            loop = asyncio.get_running_loop()
+            queue = asyncio.Queue()
+            
+            # Use threading to completely bypass Windows event loop limitations
+            # for subprocess streaming in Uvicorn/FastAPI
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+                
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
-                text=True,
-                timeout=120 # Safety timeout for Nmap
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                creationflags=creationflags
             )
             
-            if result.returncode != 0:
-                return f"Nmap Error (Code {result.returncode}): {result.stderr}"
-                
-            return result.stdout
-        except subprocess.TimeoutExpired:
-            return "Error: Nmap scan timed out."
+            def _reader_thread():
+                try:
+                    for line in iter(process.stdout.readline, b''):
+                        if not line:
+                            break
+                        decoded_line = line.decode('utf-8', errors='replace')
+                        loop.call_soon_threadsafe(queue.put_nowait, decoded_line)
+                finally:
+                    process.stdout.close()
+                    process.wait()
+                    loop.call_soon_threadsafe(queue.put_nowait, None) # EOF
+            
+            thread = threading.Thread(target=_reader_thread, daemon=True)
+            thread.start()
+            
+            start_time = time.time()
+            while True:
+                elapsed = time.time() - start_time
+                if elapsed > timeout:
+                    process.terminate()
+                    yield f"\n[!] Error: Command timed out after {timeout} seconds.\n"
+                    break
+                    
+                try:
+                    # Wait for next line from queue, timeout allows while loop to check total elapsed time
+                    line = await asyncio.wait_for(queue.get(), timeout=1.0)
+                    if line is None:
+                        break # EOF
+                    yield line
+                    queue.task_done()
+                except asyncio.TimeoutError:
+                    continue
+                    
         except Exception as e:
-            return f"Execution Error: {repr(e)} | Command: {cmd} | Path: {self.nmap_path}"
+            yield f"\n[!] Execution Error: {repr(e)} | Command: {cmd}\n"
 
-    async def run_nikto_scan(self, target: str) -> str:
+    async def run_nmap_scan_stream(self, target: str):
         """
-        Runs Nikto web scan (Local or Docker).
+        Runs a standard Nmap scan (Fast mode), yielding line by line.
+        """
+        if not self.nmap_path:
+            yield "Error: Nmap not found. Please install Nmap.\n"
+            return
+            
+        logger.info(f"Starting async Nmap on {target}")
+        cmd = [self.nmap_path, "-F", "-T4", target]
+        
+        async for line in self._stream_subprocess(cmd, timeout=120):
+            yield line
+
+    async def run_nikto_scan_stream(self, target: str):
+        """
+        Runs Nikto web scan (Local or Docker), yielding line by line.
         """
         if not self.nikto_path and not self.use_docker_nikto:
-            return "Nikto not installed (and Docker not found). Skipping web scan."
+            yield "Nikto not installed (and Docker not found). Skipping web scan.\n"
+            return
 
-        logger.info(f"Starting Nikto on {target}")
+        logger.info(f"Starting async Nikto on {target}")
         
         # Handle Localhost for Docker on Windows
         scan_target = target
@@ -79,18 +120,6 @@ class Scanner:
             cmd = [self.docker_path, "run", "--rm", "frapsoft/nikto", "-h", f"http://{scan_target}:80", "-maxtime", "60"]
         else:
             cmd = [self.nikto_path, "-h", target, "-maxtime", "60"]
-        
-        try:
-            result = await asyncio.to_thread(
-                subprocess.run,
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=75  # Hard timeout to prevent hanging
-            )
-            return result.stdout
-        except subprocess.TimeoutExpired:
-            logger.error(f"Nikto scan timed out on {target}")
-            return "Error: Nikto scan timed out after 75 seconds."
-        except Exception as e:
-            return f"Nikto Execution Error: {repr(e)}"
+            
+        async for line in self._stream_subprocess(cmd, timeout=75):
+            yield line

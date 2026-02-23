@@ -31,7 +31,16 @@ export async function startScan(target) {
 
 export async function exportPdf(scanId) {
     const res = await fetch(`${API_BASE}/scan/${scanId}/export`);
-    return res.json();
+    if (!res.ok) throw new Error('PDF export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sentra_report_${scanId.slice(0, 8)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 export async function removeScan(scanId) {

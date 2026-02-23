@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import ScanViz from '../components/ScanViz'
 import ResultCard from '../components/ResultCard'
+import AgentTerminal from '../components/AgentTerminal'
 import { Button } from "@/components/ui/button"
 import { fetchScan, fetchFixes, exportPdf, startScan } from '../api'
 
@@ -49,10 +50,27 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
     const [sending, setSending] = useState(false)
     const bottomRef = useRef(null)
 
-    // Auto-scroll
+    const prevMessagesLength = useRef(messages.length);
+
+    // Auto-scroll ONLY when a new message arrives, not on every polling update
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages, sending])
+        if (messages.length > prevMessagesLength.current || sending) {
+            // Delay ensures the DOM has resized
+            setTimeout(() => {
+                const lastMsg = messages[messages.length - 1];
+                if (lastMsg) {
+                    const msgEl = document.getElementById(`msg-${lastMsg.id}`);
+                    if (msgEl) {
+                        // Scroll the new message exactly to the top of the chat view
+                        msgEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return;
+                    }
+                }
+                bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 50);
+        }
+        prevMessagesLength.current = messages.length;
+    }, [messages.length, sending])
 
     // Load past scan from sidebar
     useEffect(() => {
@@ -150,7 +168,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
         setSending(true)
 
         try {
-            const res = await fetch('http://localhost:8000/chat', {
+            const res = await fetch('http://127.0.0.1:8000/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg })
@@ -259,7 +277,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                 if (msg.role === 'ai' && msg.id === 'welcome') return null; // Hide welcome message in chat view
 
                                 return (
-                                    <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                    <div key={i} id={`msg-${msg.id}`} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''} pb-4`}>
                                         {/* Avatar */}
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border 
                                     ${msg.role === 'ai'
@@ -284,8 +302,13 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
 
                                             {/* Widgets */}
                                             {(msg.type === 'scan_running' || msg.type === 'scan_result') && (
-                                                <div className="mt-2 w-full min-w-[320px]">
+                                                <div className="mt-2 w-full min-w-[320px] space-y-4">
                                                     <ScanViz scanStage={msg.type === 'scan_result' ? 'complete' : msg.stage} />
+
+                                                    {/* Live Terminal Streaming View */}
+                                                    {msg.type === 'scan_running' && (
+                                                        <AgentTerminal scanId={msg.scanId} />
+                                                    )}
                                                 </div>
                                             )}
 

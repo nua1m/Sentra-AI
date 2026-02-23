@@ -32,15 +32,18 @@ def init_db():
             nikto TEXT,
             analysis TEXT,
             fixes TEXT,
+            risk_score REAL,
+            risk_label TEXT,
             created_at TEXT NOT NULL,
             completed_at TEXT
         )
     """)
     # Migration for existing DB
-    try:
-        conn.execute("ALTER TABLE scans ADD COLUMN scan_stage TEXT")
-    except sqlite3.OperationalError:
-        pass # Column likely exists
+    for col in ["scan_stage TEXT", "risk_score REAL", "risk_label TEXT"]:
+        try:
+            conn.execute(f"ALTER TABLE scans ADD COLUMN {col}")
+        except sqlite3.OperationalError:
+            pass
     conn.commit()
     conn.close()
     logger.info(f"Database initialized at {DB_PATH}")
@@ -105,7 +108,7 @@ def update_scan_status(scan_id: str, status: str, **kwargs):
     updates = ["status = ?"]
     values = [status]
     
-    for key in ["scan_stage", "nmap", "nikto", "analysis"]:
+    for key in ["scan_stage", "nmap", "nikto", "analysis", "risk_score", "risk_label"]:
         if key in kwargs:
             updates.append(f"{key} = ?")
             values.append(kwargs[key])
