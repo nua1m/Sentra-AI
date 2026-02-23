@@ -22,7 +22,7 @@ export default function Sidebar({ scans, activeScanId, onSelectScan, onNewScan, 
                     <div
                         onClick={onNewScan}
                         className={`flex items-center gap-3 px-4 py-3 rounded-md cursor-pointer transition-all
-                            ${!activeScanId ? 'bg-slate-100 dark:bg-white/10 text-primary dark:text-white border-r-[3px] border-primary dark:border-white font-semibold' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white'}
+                            ${!activeScanId ? 'bg-slate-100 dark:bg-white/10 text-primary dark:text-white font-semibold' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white'}
                         `}
                     >
                         <span className="material-symbols-outlined text-[20px]">dashboard</span>
@@ -46,7 +46,7 @@ export default function Sidebar({ scans, activeScanId, onSelectScan, onNewScan, 
                                     <div
                                         key={s.id}
                                         className={`flex items-center justify-between px-4 py-2.5 rounded-md cursor-pointer transition-colors group ${activeScanId === s.id
-                                            ? 'bg-slate-100 dark:bg-white/10 border-r-[3px] border-primary dark:border-white text-primary dark:text-white font-semibold'
+                                            ? 'bg-slate-100 dark:bg-white/10 text-primary dark:text-white font-semibold'
                                             : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white'
                                             }`}
                                     >

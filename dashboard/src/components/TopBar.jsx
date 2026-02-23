@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from './theme-provider'
 import { Button } from "@/components/ui/button"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 function PipelineNode({ label, state }) {
     if (state === 'done') {
@@ -80,16 +81,27 @@ export default function TopBar({ scanStage, activeScanId, scans }) {
 
             {/* Right side (Profile & Notifications) */}
             <div className="flex items-center gap-5">
-                <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    className="w-9 h-9 rounded-full text-slate-400"
+                <ToggleGroup
+                    type="single"
+                    value={theme}
+                    onValueChange={(val) => { if (val) setTheme(val) }}
+                    className="flex p-1 bg-slate-100 dark:bg-accent rounded-md border border-border-light shadow-sm"
                 >
-                    <span className="material-symbols-outlined text-xl">
-                        {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-                    </span>
-                </Button>
+                    <ToggleGroupItem
+                        value="light"
+                        aria-label="Light mode"
+                        className="h-7 w-8 px-0 data-[state=on]:bg-white data-[state=on]:dark:bg-slate-700 data-[state=on]:shadow-sm data-[state=on]:text-slate-900 data-[state=on]:dark:text-white text-slate-500 rounded-sm transition-all"
+                    >
+                        <span className="material-symbols-outlined text-[16px]">light_mode</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                        value="dark"
+                        aria-label="Dark mode"
+                        className="h-7 w-8 px-0 data-[state=on]:bg-white data-[state=on]:dark:bg-slate-700 data-[state=on]:shadow-sm data-[state=on]:text-slate-900 data-[state=on]:dark:text-white text-slate-500 rounded-sm transition-all"
+                    >
+                        <span className="material-symbols-outlined text-[16px]">dark_mode</span>
+                    </ToggleGroupItem>
+                </ToggleGroup>
                 <div className="h-6 w-px bg-border-light"></div>
                 <div className="flex items-center gap-3 cursor-pointer group">
                     <div className="text-right">
