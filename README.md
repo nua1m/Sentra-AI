@@ -1,163 +1,166 @@
-# Sentra.AI - AI-Powered Security Consultant
+# Sentra.AI — Intelligent Security Assessment Agent
 
-An intelligent security assessment tool that combines Nmap scanning, Nikto web vulnerability scanning, and AI-powered analysis to provide actionable security recommendations and automated remediation playbooks.
+An AI-powered security assessment engine that autonomously selects and executes security tools based on target reconnaissance. Unlike static scanners, Sentra uses an intelligent agent pipeline: it runs Nmap first, then asks AI which follow-up tools are relevant, executes them dynamically, and generates remediation playbooks.
 
-## 🚀 Features
+## ✨ Key Features
 
-- **Unified Scanning** - Combines Nmap (port scanning) + Nikto (web vulnerabilities)
-- **AI Analysis & Remediation** - Uses Kimi k2.5 via OpenRouter to interpret results and generate tactical fix scripts.
-- **Web Dashboard** - A sleek, modern SaaS UI built with React, Vite, and Tailwind CSS v4.
-- **Rich CLI** - A Matrix-themed terminal interface using Python Rich for terminal lovers.
-- **Strict Verification** - Prevents unauthorized scanning with `sentra-verify.txt` validation.
-- **PDF Reports** - Export professional audit reports containing findings and fixes.
+| Feature | Description |
+|---------|-------------|
+| **Intelligent Agent Pipeline** | AI decides which tools to run based on Nmap findings |
+| **Pluggable Tool Registry** | 4 tools (Nmap, Nikto, SSLScan, Gobuster) — easily extensible |
+| **AI Threat Analysis** | Kimi k2.5 cross-references CVE/NVD databases |
+| **Conversation Memory** | Ask follow-up questions about scan results |
+| **Automated Remediation** | Generates OS-specific fix scripts with MITRE ATT&CK mapping |
+| **Risk Scoring** | 0–10 heuristic based on ports, vulns, and severity |
+| **PDF Reports** | Professional audit reports with findings and fixes |
+| **Strict Verification** | `sentra-verify.txt` prevents unauthorized scanning |
 
 ## 📋 Requirements
 
-### System Requirements
-- Python 3.11+
-- Node.js 18+ (for Web Dashboard)
-- [Nmap](https://nmap.org/download.html) (Windows installer or `apt install nmap`)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine (required for Nikto web scanning)
+- **Python 3.11+**
+- **Node.js 18+** (for dashboard)
+- **[Nmap](https://nmap.org/download.html)** (required — core reconnaissance tool)
+- **[OpenRouter API Key](https://openrouter.ai/)** (free tier works with Kimi models)
 
-### API Keys
-- [OpenRouter API Key](https://openrouter.ai/) (free tier available with Kimi models)
+### Optional Tools (auto-detected)
+| Tool | Install | Purpose |
+|------|---------|---------|
+| Nikto | Docker: `docker pull frapsoft/nikto` | Web vulnerability scanning |
+| SSLScan | `choco install sslscan` / `apt install sslscan` | TLS/SSL certificate audit |
+| Gobuster | `choco install gobuster` / `apt install gobuster` | Directory enumeration |
+
+> The agent will only select tools that are installed. If only Nmap is available, it works fine — just fewer scan layers.
 
 ## 🛠️ Installation
 
 ```bash
-# 1. Clone the repository
+# 1. Clone
 git clone https://github.com/nua1m/Sentra-AI.git
 cd Sentra-AI
 
-# 2. Backend Setup
+# 2. Backend
 python -m venv venv
 # Windows: .\venv\Scripts\activate
 # Linux/Mac: source venv/bin/activate
 pip install -r requirements.txt
 
-# 3. Configure Environment
-# Create .env in the root based on .env.example
-# Add OPENROUTER_API_KEY=sk-or-v1-your-key-here
+# 3. Environment
+# Copy .env.example to .env and add your API key:
+# OPENROUTER_API_KEY=sk-or-v1-your-key-here
 
-# 4. Frontend Setup
+# 4. Frontend
 cd dashboard
 npm install
 ```
 
-## ⚙️ Configuration
+## 🚀 Running
 
-Create a `.env` file in the project root:
+Open **two terminals**:
 
-```env
-OPENROUTER_API_KEY=sk-or-v1-your-key-here
-MODEL=moonshotai/kimi-k2.5
-```
-
-## 🏃 How to Launch the UI & Backend
-
-You need to run both the Backend API and the Frontend Dashboard simultaneously in two separate terminal windows.
-
-**Terminal 1 (Start the Backend API):**
+**Terminal 1 — Backend API:**
 ```bash
-# 1. Open a new terminal and ensure you are in the project root directory
-
-# 2. Ensure your Python virtual environment is activated!
-# Windows cmd: venv\Scripts\activate.bat
-# Windows PS: .\venv\Scripts\Activate.ps1
-# Mac/Linux: source venv/bin/activate
-
+# Activate your venv first!
 uvicorn core.main:app --reload
 ```
-*The API is now running at `http://localhost:8000`*
+> API runs at `http://localhost:8000`
 
-**Terminal 2 (Start the Web Dashboard UI):**
+**Terminal 2 — Web Dashboard:**
 ```bash
-# 1. Open a new terminal and ensure you are in the project root directory
-# 2. Navigate into the dashboard folder
 cd dashboard
-
-# 3. Start the UI
 npm run dev
 ```
-*The UI is now running at `http://localhost:5173`*
+> Dashboard at `http://localhost:5173`
 
-### 🚀 Access the Dashboard
-1. Open your web browser and go to `http://localhost:5173`.
-2. Toggle Dark Mode using the Sun/Moon icon in the top right.
-3. Type **"Scan localhost"** in the Intelligent Remediation input box to begin a test scan!
+### Using the Dashboard
+1. Open `http://localhost:5173`
+2. Type **"Scan localhost"** in the chat
+3. Watch the agent:
+   - **Phase 1**: Nmap scans the target
+   - **Phase 2**: AI selects follow-up tools based on open ports
+   - **Phase 3**: AI analyzes all findings
+   - **Phase 4**: Remediation playbooks generated
+4. Click tabs to view each tool's raw output
+5. Ask follow-up questions: *"What's the biggest risk?"*
 
-### Option B: Command Line Interface (CLI)
-
-**Terminal 1 (Backend API):**
+### Using the CLI
 ```bash
-cd Sentra-AI
-uvicorn core.main:app --reload
-```
-
-**Terminal 2 (CLI Client):**
-```bash
-cd Sentra-AI
 python sentra.py
+# Then type: scan localhost
 ```
-*Inside the CLI, run: `scan localhost`*
+
+## 🧪 Testing & Code Quality
+
+```bash
+# Run all tests (25 tests)
+python -m pytest tests/ -v
+
+# Lint check (0 errors expected)
+ruff check core/
+
+# Security scan
+bandit -r core/ -ll
+```
+
+### Test Coverage
+| Module | Tests | Covers |
+|--------|-------|--------|
+| Tool Registry | 10 | Port triggers, availability, commands |
+| Intelligence | 5 | Intent detection, AI tool selection, fallback |
+| Remediation | 6 | OS detection, port parsing, fix structure |
+| Risk Scoring | 4 | Boundary values, severity weights |
 
 ## 📁 Project Structure
 
 ```
-Dev/
-├── core/                    # Backend modules
-│   ├── main.py              # FastAPI application (uvicorn entrypoint)
-│   ├── scanner.py           # Nmap & Nikto subprocess wrappers
-│   ├── intelligence.py      # AI integration (OpenRouter/Kimi)
-│   ├── remediation.py       # Automated fix playbook generation
-│   ├── security.py          # Target ownership verification logic
-│   └── database.py          # SQLite persistence layer
-├── dashboard/               # Frontend React Application
-│   ├── src/                 # React components (TopBar, Sidebar, ChatPage)
-│   └── index.css            # Tailwind v4 theme configuration
-├── sentra.py                # Legacy CLI client (Rich UI)
-├── requirements.txt         # Python dependencies
-└── .env                     # Configuration (not in git)
+Sentra-AI/
+├── core/                       # Backend
+│   ├── main.py                 # FastAPI app + dynamic scan pipeline
+│   ├── tools.py                # Pluggable tool registry (4 tools)
+│   ├── intelligence.py         # AI: intent, tool selection, memory
+│   ├── remediation.py          # Fix playbook generator
+│   ├── security.py             # Target ownership verification
+│   ├── database.py             # SQLite persistence
+│   └── reporting.py            # PDF report generation
+├── dashboard/                  # React + Vite + Tailwind v4
+│   └── src/
+│       ├── components/         # ResultCard, Sidebar, AgentTerminal
+│       └── pages/              # ChatPage, HistoryPage
+├── tests/
+│   └── test_core.py            # 25 tests (pytest)
+├── pyproject.toml              # Ruff + pytest config
+├── sentra.py                   # CLI client
+├── requirements.txt            # Python deps
+└── .env                        # Config (not in git)
 ```
 
-## 🔒 Strict Verification
+## 🔒 Target Verification
 
-To scan a public target (e.g., `example.com`), you must prove ownership:
-1. Create `sentra-verify.txt` on the target's web root.
-2. The file must contain your verification token.
-3. Sentra will check `http://<target>/sentra-verify.txt` before scanning.
-
-**Bypass**: Localhost and private IPs (192.168.x.x, 10.x.x.x) skip verification automatically.
+| Target Type | Verification |
+|-------------|-------------|
+| `localhost`, `127.0.0.1` | Auto-allowed |
+| Private IPs (`192.168.x.x`, `10.x.x.x`) | Auto-allowed |
+| Public domains | Must host `sentra-verify.txt` on web root |
 
 ## 🐳 Testing with DVWA
 
-To test the web scanner locally without permission issues, run a vulnerable web app:
-
+Test against a real vulnerable target:
 ```bash
 docker run -d --name dvwa -p 80:80 vulnerables/web-dvwa
+# Then scan "localhost" in Sentra
 ```
-Then scan targeting `localhost`.
-
-## 📄 PDF Reports
-
-After a scan finishes, you can export a professional PDF containing:
-- Executive Summary (AI-generated)
-- Technical Net Scan Details (Nmap)
-- Web Vulnerabilities (Nikto)
-- **Actionable Remediation Playbooks** (Commands + Descriptions)
 
 ## 🔧 Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| "Nmap not found" | Install Nmap and ensure it is in your system PATH. |
-| "Docker not running" | Start Docker Desktop before running a scan. |
-| "API Key missing" | Check `.env` file in the root directory. |
-| Nikto timeouts/errors | Ensure port 80/443 mapping is correct if testing on Docker targets. |
-| Frontend won't start | Run `npm install` inside the `dashboard/` folder first. |
+| "Nmap not found" | Install Nmap and add to PATH |
+| "Docker not running" | Start Docker Desktop for Nikto |
+| "API Key missing" | Check `.env` file |
+| Frontend won't start | Run `npm install` in `dashboard/` |
+| Ruff errors after editing | Run `ruff check core/ --fix` |
 
 ## 📜 License
 MIT License
 
 ## 👤 Author
-Final Year Project - Cybersecurity
+Final Year Project — Cybersecurity
