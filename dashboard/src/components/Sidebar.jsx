@@ -99,13 +99,19 @@ function SystemStatus() {
 
     const isOnline = health?.status === 'online'
 
+    // Dynamically extract tool statuses from health response
+    const toolEntries = health
+        ? Object.entries(health)
+            .filter(([key]) => key.endsWith('_available'))
+            .map(([key, val]) => ({ label: key.replace('_available', '').replace(/^\w/, c => c.toUpperCase()), ok: val }))
+        : []
+
     return (
         <div className="mb-4">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">System Status</p>
             <div className="space-y-1.5">
                 <StatusRow label="API Server" ok={isOnline} />
-                <StatusRow label="Nmap" ok={health?.nmap_available} />
-                <StatusRow label="Nikto" ok={health?.nikto_available} />
+                {toolEntries.map(t => <StatusRow key={t.label} label={t.label} ok={t.ok} />)}
             </div>
         </div>
     )

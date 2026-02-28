@@ -14,13 +14,12 @@ from datetime import datetime
 from typing import Dict, List
 
 from .security import verify_target_ownership
-from .scanner import Scanner
-from .intelligence import process_chat_query, ask_kimi, analyze_results
+from .tools import TOOL_REGISTRY, get_tool, get_available_tools, get_followup_tools
+from .intelligence import process_chat_query, ask_kimi, analyze_results, select_tools, chat_with_context
 from .database import save_scan, get_scan, list_scans, update_scan_status, delete_scan
 
 # Setup
 app = FastAPI(title="Sentra.AI Core")
-scanner = Scanner()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sentra.main")
 
@@ -129,16 +128,26 @@ def _calculate_risk_score(open_ports: int, vuln_count: int, fixes: dict) -> floa
 async def run_background_scan(scan_id: str, target: str):
     scans[scan_id]["status"] = "scanning"
     scans[scan_id]["scan_stage"] = "nmap_running"
+    scans[scan_id]["tools_used"] = ["nmap"]  # Track which tools ran
     update_scan_status(scan_id, "scanning", scan_stage="nmap_running")
+
+    # Grab tools from registry
+    nmap_tool = get_tool("nmap")
+    available_followups = [t for t in get_available_tools() if t.name != "nmap"]
 
     # ═══════════════════════════════════════════════════════════════
     # PHASE 0: BOOT SEQUENCE
     # ═══════════════════════════════════════════════════════════════
+    tool_list_lines = []
+    for t in TOOL_REGISTRY:
+        status = "\x1b[32m✓\x1b[0m" if t.is_available() else "\x1b[31m✗\x1b[0m"
+        tool_list_lines.append(f"\x1b[32m[SENTRA]\x1b[0m  {status} {t.label} ({t.name})")
+
     await _narrate_block(scan_id, [
         "",
         "\x1b[36m╔══════════════════════════════════════════════════════════╗\x1b[0m",
         "\x1b[36m║\x1b[0m  \x1b[1;37mSENTRA AI — Autonomous Security Assessment Engine\x1b[0m      \x1b[36m║\x1b[0m",
-        "\x1b[36m║\x1b[0m  \x1b[90mv2.1.0 | Threat Intelligence Pipeline\x1b[0m                   \x1b[36m║\x1b[0m",
+        "\x1b[36m║\x1b[0m  \x1b[90mv3.0.0 | Intelligent Agent Pipeline\x1b[0m                    \x1b[36m║\x1b[0m",
         "\x1b[36m╚══════════════════════════════════════════════════════════╝\x1b[0m",
         "",
     ], delay=0.08)
@@ -147,19 +156,17 @@ async def run_background_scan(scan_id: str, target: str):
     await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m Session ID: \x1b[90m{scan_id}\x1b[0m\r\n", 0.3)
     await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m Verifying target ownership... ", 0.6)
     await _narrate(scan_id, "\x1b[1;32m✓ VERIFIED\x1b[0m\r\n", 0.5)
-    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m Loading scan modules...\r\n", 0.4)
-    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m  ├─ Network Reconnaissance (Nmap)\r\n", 0.15)
-    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m  ├─ Web Vulnerability Audit (Nikto)\r\n", 0.15)
-    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m  ├─ AI Threat Analysis (Kimi)\r\n", 0.15)
-    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m  └─ Remediation Playbook Generator\r\n", 0.15)
+    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m Loading tool registry...\r\n", 0.4)
+    for line in tool_list_lines:
+        await _narrate(scan_id, line + "\r\n", 0.12)
     await _narrate(scan_id, "\r\n", 0.3)
 
     # ═══════════════════════════════════════════════════════════════
-    # PHASE 1: NMAP
+    # PHASE 1: NMAP (always runs first)
     # ═══════════════════════════════════════════════════════════════
     await _narrate_block(scan_id, [
         "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
-        "\x1b[1;36m  [PHASE 1/4]\x1b[0m  \x1b[1;37mNETWORK RECONNAISSANCE\x1b[0m",
+        "\x1b[1;36m  [PHASE 1]\x1b[0m  \x1b[1;37mNETWORK RECONNAISSANCE\x1b[0m",
         "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
         "",
     ], delay=0.1)
@@ -168,65 +175,120 @@ async def run_background_scan(scan_id: str, target: str):
     await _narrate(scan_id, "\r\n", 0.2)
 
     nmap_lines = []
-    async for line in scanner.run_nmap_scan_stream(target):
+    async for line in nmap_tool.run_stream(target):
         nmap_lines.append(line)
         formatted_line = line.replace('\n', '\r\n') if not line.endswith('\r\n') else line
         await manager.broadcast(formatted_line, scan_id)
         await asyncio.sleep(0.04)
     nmap_out = "".join(nmap_lines)
 
-    # Count open ports for narration
-    open_ports = sum(1 for l in nmap_lines if '/tcp' in l and 'open' in l)
-    
+    # Extract open port numbers
+    open_port_lines = [l for l in nmap_lines if '/tcp' in l and 'open' in l]
+    open_ports_count = len(open_port_lines)
+    import re
+    open_port_numbers = []
+    for line in open_port_lines:
+        m = re.match(r'(\d+)/tcp', line.strip())
+        if m:
+            open_port_numbers.append(m.group(1))
+
     await _narrate(scan_id, "\r\n", 0.2)
-    await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m Network scan complete. \x1b[1;33m{open_ports} open port(s)\x1b[0m detected.\r\n", 0.5)
+    await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m Network scan complete. \x1b[1;33m{open_ports_count} open port(s)\x1b[0m detected.", 0.3)
+    if open_port_numbers:
+        await _narrate(scan_id, f" Ports: \x1b[1;37m{', '.join(open_port_numbers)}\x1b[0m\r\n", 0.3)
+    else:
+        await _narrate(scan_id, "\r\n", 0.2)
 
     scans[scan_id]["nmap"] = nmap_out
     scans[scan_id]["scan_stage"] = "nmap_done"
     update_scan_status(scan_id, "scanning", nmap=nmap_out, scan_stage="nmap_done")
-    
+
     await asyncio.sleep(0.8)
 
     # ═══════════════════════════════════════════════════════════════
-    # PHASE 2: NIKTO
+    # PHASE 2: AI TOOL SELECTION + DYNAMIC TOOL EXECUTION
     # ═══════════════════════════════════════════════════════════════
-    scans[scan_id]["scan_stage"] = "nikto_running"
-    update_scan_status(scan_id, "scanning", scan_stage="nikto_running")
-
     await _narrate_block(scan_id, [
         "",
         "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
-        "\x1b[1;36m  [PHASE 2/4]\x1b[0m  \x1b[1;37mWEB VULNERABILITY AUDIT\x1b[0m",
+        "\x1b[1;36m  [PHASE 2]\x1b[0m  \x1b[1;37mINTELLIGENT TOOL SELECTION\x1b[0m",
         "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
         "",
     ], delay=0.1)
 
-    if open_ports > 0:
-        await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m HTTP service detected. Escalating to web audit...\r\n", 0.4)
-    await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m Executing: \x1b[33mnikto -h {target}\x1b[0m\r\n", 0.3)
-    await _narrate(scan_id, "\r\n", 0.2)
+    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m AI agent analyzing Nmap findings...\r\n", 0.5)
+    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m Evaluating which tools are relevant for this target...\r\n", 0.6)
 
-    nikto_lines = []
-    async for line in scanner.run_nikto_scan_stream(target):
-        nikto_lines.append(line)
-        formatted_line = line.replace('\n', '\r\n') if not line.endswith('\r\n') else line
-        await manager.broadcast(formatted_line, scan_id)
-        await asyncio.sleep(0.04)
-    nikto_out = "".join(nikto_lines)
+    # Build tool info for AI
+    tool_info = [
+        {"name": t.name, "description": t.description, "ports": t.relevant_ports}
+        for t in available_followups
+    ]
 
-    vuln_count = sum(1 for l in nikto_lines if l.strip().startswith('+') or 'OSVDB' in l)
+    # AI decides which tools to run
+    selected_names = await asyncio.to_thread(select_tools, nmap_out, tool_info)
+    selected_tools = [t for t in available_followups if t.name in selected_names]
 
-    await _narrate(scan_id, "\r\n", 0.2)
-    await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m Web audit complete. \x1b[1;33m{vuln_count} finding(s)\x1b[0m identified.\r\n", 0.5)
+    if selected_tools:
+        await _narrate(scan_id, f"\x1b[1;33m[AGENT]\x1b[0m Selected \x1b[1;37m{len(selected_tools)}\x1b[0m follow-up tool(s):\r\n", 0.4)
+        for t in selected_tools:
+            await _narrate(scan_id, f"\x1b[33m[AGENT]\x1b[0m  → {t.label} ({t.name})\r\n", 0.2)
+    else:
+        await _narrate(scan_id, "\x1b[33m[AGENT]\x1b[0m No follow-up tools needed for this target.\r\n", 0.4)
 
-    scans[scan_id]["nikto"] = nikto_out
-    scans[scan_id]["scan_stage"] = "nikto_done"
-    update_scan_status(scan_id, "scanning", nikto=nikto_out, scan_stage="nikto_done")
+    await asyncio.sleep(0.5)
 
-    await asyncio.sleep(0.8)
+    # Collect all tool outputs
+    all_outputs = {"nmap": nmap_out}
+    nikto_out = ""
+    vuln_count = 0
+
+    # Run each selected tool
+    for idx, tool in enumerate(selected_tools):
+        tool_num = idx + 1
+        scans[scan_id]["scan_stage"] = f"{tool.name}_running"
+        scans[scan_id]["tools_used"].append(tool.name)
+        update_scan_status(scan_id, "scanning", scan_stage=f"{tool.name}_running")
+
+        await _narrate_block(scan_id, [
+            "",
+            "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
+            f"\x1b[1;36m  [TOOL {tool_num}/{len(selected_tools)}]\x1b[0m  \x1b[1;37m{tool.label.upper()}\x1b[0m",
+            "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
+            "",
+        ], delay=0.1)
+
+        await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m Executing: \x1b[33m{tool.name} → {target}\x1b[0m\r\n", 0.3)
+        await _narrate(scan_id, "\r\n", 0.2)
+
+        tool_lines = []
+        async for line in tool.run_stream(target):
+            tool_lines.append(line)
+            formatted_line = line.replace('\n', '\r\n') if not line.endswith('\r\n') else line
+            await manager.broadcast(formatted_line, scan_id)
+            await asyncio.sleep(0.04)
+
+        tool_output = "".join(tool_lines)
+        all_outputs[tool.name] = tool_output
+
+        # Store in scan data
+        scans[scan_id][tool.name] = tool_output
+
+        # Track nikto-specific stats
+        if tool.name == "nikto":
+            nikto_out = tool_output
+            vuln_count = sum(1 for l in tool_lines if l.strip().startswith('+') or 'OSVDB' in l)
+
+        finding_count = len(tool_lines)
+        await _narrate(scan_id, "\r\n", 0.2)
+        await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m {tool.label} complete. \x1b[1;33m{finding_count} line(s)\x1b[0m of output.\r\n", 0.4)
+
+        scans[scan_id]["scan_stage"] = f"{tool.name}_done"
+        update_scan_status(scan_id, "scanning", scan_stage=f"{tool.name}_done")
+        await asyncio.sleep(0.5)
 
     # ═══════════════════════════════════════════════════════════════
-    # PHASE 3: AI ANALYSIS
+    # PHASE 3: AI ANALYSIS (fed ALL tool outputs)
     # ═══════════════════════════════════════════════════════════════
     scans[scan_id]["status"] = "analyzing"
     scans[scan_id]["scan_stage"] = "analyzing"
@@ -235,21 +297,44 @@ async def run_background_scan(scan_id: str, target: str):
     await _narrate_block(scan_id, [
         "",
         "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
-        "\x1b[1;36m  [PHASE 3/4]\x1b[0m  \x1b[1;37mAI THREAT ANALYSIS\x1b[0m",
+        "\x1b[1;36m  [PHASE 3]\x1b[0m  \x1b[1;37mAI THREAT ANALYSIS\x1b[0m",
         "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
         "",
     ], delay=0.1)
 
-    await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m Feeding scan data to AI engine...\r\n", 0.5)
+    tools_used = scans[scan_id]["tools_used"]
+    await _narrate(scan_id, f"\x1b[32m[SENTRA]\x1b[0m Feeding data from {len(tools_used)} tool(s) to AI engine...\r\n", 0.5)
     await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m Cross-referencing CVE/NVD databases...\r\n", 0.8)
     await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m Evaluating attack surface vectors...\r\n", 0.6)
     await _narrate(scan_id, "\x1b[32m[SENTRA]\x1b[0m Generating risk prioritization matrix...\r\n", 0.4)
 
-    analysis = await asyncio.to_thread(analyze_results, nmap_out, nikto_out)
+    # Build combined output for AI analysis
+    combined_nikto = all_outputs.get("nikto", "No web scan performed.")
+    extra_context = ""
+    for tool_name, output in all_outputs.items():
+        if tool_name not in ("nmap", "nikto"):
+            extra_context += f"\n=== {tool_name.upper()} RESULTS ===\n{output[:2000]}\n"
+
+    # Extend the analysis prompt with extra tool data
+    analysis_prompt = f"""
+    Analyze these security scan results and provide a concise assessment.
+    Tools used: {', '.join(tools_used)}
+    
+    === NMAP SCAN ===
+    {nmap_out[:3000]}
+    
+    === NIKTO WEB SCAN ===
+    {combined_nikto[:3000]}
+    {extra_context}
+    Format as:
+    1. **Summary**: What is running?
+    2. **Risks**: Potential vulnerabilities (if any obvious versions).
+    3. **Recommendations**: Basic hardening steps.
+    """
+    analysis = await asyncio.to_thread(ask_kimi, analysis_prompt)
     scans[scan_id]["analysis"] = analysis
 
     await _narrate(scan_id, "\x1b[1;32m[SENTRA]\x1b[0m \x1b[32m✓\x1b[0m AI threat analysis complete.\r\n", 0.5)
-
     await asyncio.sleep(0.6)
 
     # ═══════════════════════════════════════════════════════════════
@@ -261,7 +346,7 @@ async def run_background_scan(scan_id: str, target: str):
     await _narrate_block(scan_id, [
         "",
         "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
-        "\x1b[1;36m  [PHASE 4/4]\x1b[0m  \x1b[1;37mREMEDIATION PLAYBOOKS\x1b[0m",
+        "\x1b[1;36m  [PHASE 4]\x1b[0m  \x1b[1;37mREMEDIATION PLAYBOOKS\x1b[0m",
         "\x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m",
         "",
     ], delay=0.1)
@@ -282,23 +367,25 @@ async def run_background_scan(scan_id: str, target: str):
     # ═══════════════════════════════════════════════════════════════
     # RISK SCORE CALCULATION
     # ═══════════════════════════════════════════════════════════════
-    risk_score = _calculate_risk_score(open_ports, vuln_count, fixes)
+    risk_score = _calculate_risk_score(open_ports_count, vuln_count, fixes)
     risk_label = "CRITICAL" if risk_score >= 8 else "HIGH" if risk_score >= 6 else "MEDIUM" if risk_score >= 4 else "LOW"
     risk_color = "\x1b[1;31m" if risk_score >= 8 else "\x1b[1;33m" if risk_score >= 4 else "\x1b[1;32m"
-    
+
     scans[scan_id]["risk_score"] = risk_score
     scans[scan_id]["risk_label"] = risk_label
 
     # ═══════════════════════════════════════════════════════════════
     # COMPLETE
     # ═══════════════════════════════════════════════════════════════
+    tools_str = ', '.join(tools_used)
     await _narrate_block(scan_id, [
         "",
         "\x1b[36m╔══════════════════════════════════════════════════════════╗\x1b[0m",
         "\x1b[36m║\x1b[0m  \x1b[1;32m✓ OPERATION COMPLETE\x1b[0m                                    \x1b[36m║\x1b[0m",
         "\x1b[36m╠══════════════════════════════════════════════════════════╣\x1b[0m",
         f"\x1b[36m║\x1b[0m  Target:     \x1b[1;37m{target:<45}\x1b[0m\x1b[36m║\x1b[0m",
-        f"\x1b[36m║\x1b[0m  Ports:      \x1b[1;33m{open_ports:<45}\x1b[0m\x1b[36m║\x1b[0m",
+        f"\x1b[36m║\x1b[0m  Tools:      \x1b[1;37m{tools_str:<45}\x1b[0m\x1b[36m║\x1b[0m",
+        f"\x1b[36m║\x1b[0m  Ports:      \x1b[1;33m{open_ports_count:<45}\x1b[0m\x1b[36m║\x1b[0m",
         f"\x1b[36m║\x1b[0m  Findings:   \x1b[1;33m{vuln_count:<45}\x1b[0m\x1b[36m║\x1b[0m",
         f"\x1b[36m║\x1b[0m  Fixes:      \x1b[1;32m{fix_count:<45}\x1b[0m\x1b[36m║\x1b[0m",
         f"\x1b[36m║\x1b[0m  Risk Score: {risk_color}{risk_score}/10 — {risk_label:<39}\x1b[0m\x1b[36m║\x1b[0m",
@@ -331,29 +418,47 @@ def home():
 
 @app.get("/health")
 def health_check():
+    tools_status = {t.name + "_available": t.is_available() for t in TOOL_REGISTRY}
     return {
         "status": "online",
-        "nmap_available": scanner.is_available(),
-        "nikto_available": bool(scanner.nikto_path or scanner.use_docker_nikto),
+        **tools_status,
         "active_scans": sum(1 for s in scans.values() if s.get("status") not in ["complete", "failed"]),
     }
 
 
+class ChatRequest2(BaseModel):
+    message: str
+    scan_id: str = None
+
 @app.post("/chat")
-async def chat_endpoint(req: ChatRequest):
-    # Run in thread instead of blocking event loop
+async def chat_endpoint(req: ChatRequest2):
+    # If scan_id is provided, use contextual chat
+    if req.scan_id:
+        scan_data = None
+        if req.scan_id in scans:
+            scan_data = scans[req.scan_id]
+        else:
+            scan_data = get_scan(req.scan_id)
+
+        if scan_data and scan_data.get("status") == "complete":
+            response = await asyncio.to_thread(
+                chat_with_context, req.message, req.scan_id, scan_data
+            )
+            return {"type": "message", "message": response}
+
+    # Standard intent classification
     intent = await asyncio.to_thread(process_chat_query, req.message)
-    
+
     if intent.get("action") == "scan" and intent.get("target"):
         target = intent["target"]
-        
+
         if not verify_target_ownership(target):
             return {
                 "type": "error",
                 "message": f"⛔ VERIFICATION FAILED: {target}\n"
                            f"Strict Mode Enabled. You must host 'sentra-verify.txt' on the target."
             }
-        
+
         return {
             "type": "action_required",
             "action": "start_scan",
@@ -361,7 +466,6 @@ async def chat_endpoint(req: ChatRequest):
             "message": f"Target {target} Verified. Ready to launch Scan."
         }
 
-    # Returning exactly what the single API call generated
     return {"type": "message", "message": intent.get("message", "No response generated.")}
 
 

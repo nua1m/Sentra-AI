@@ -168,10 +168,15 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
         setSending(true)
 
         try {
-            const res = await fetch('http://127.0.0.1:8000/chat', {
+            // Find the most recent completed scan for context
+            const lastScan = messages.slice().reverse().find(m => m.scanId && m.type === 'scan_result')
+            const body = { message: msg }
+            if (lastScan?.scanId) body.scan_id = lastScan.scanId
+
+            const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg })
+                body: JSON.stringify(body)
             })
             const data = await res.json()
 

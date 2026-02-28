@@ -111,18 +111,33 @@ function TypewriterText({ text, speed = 10 }) {
     )
 }
 
-const TABS = [
-    { id: 'analysis', label: 'Analysis', icon: 'analytics' },
-    { id: 'fixes', label: 'Fixes', icon: 'build' },
-    { id: 'nmap', label: 'Nmap', icon: 'lan' },
-    { id: 'nikto', label: 'Nikto', icon: 'language' },
-]
+const TOOL_ICONS = {
+    nmap: 'lan',
+    nikto: 'language',
+    sslscan: 'lock',
+    gobuster: 'folder_open',
+}
 
 export default function ResultCard({ scan, fixes, onExport }) {
     const [activeTab, setActiveTab] = useState('analysis')
     const findings = fixes?.fixes?.findings || []
     const riskScore = scan.risk_score ?? null
     const riskLabel = scan.risk_label ?? ''
+
+    // Build dynamic tabs based on which tools actually ran
+    const toolTabs = (scan.tools_used || ['nmap', 'nikto'])
+        .filter(name => scan[name])  // only show if data exists
+        .map(name => ({
+            id: name,
+            label: name.charAt(0).toUpperCase() + name.slice(1),
+            icon: TOOL_ICONS[name] || 'terminal',
+        }))
+
+    const TABS = [
+        { id: 'analysis', label: 'Analysis', icon: 'analytics' },
+        { id: 'fixes', label: 'Fixes', icon: 'build' },
+        ...toolTabs,
+    ]
 
     const getRiskColor = (label) => {
         switch (label) {
@@ -156,7 +171,7 @@ export default function ResultCard({ scan, fixes, onExport }) {
                 </div>
             )}
 
-            {/* Tab Bar — manual state, no Radix mount/unmount */}
+            {/* Tab Bar */}
             <div className="flex items-center border-b border-border-light bg-white dark:bg-zinc-900 px-2">
                 <div className="flex items-center gap-1 flex-1 overflow-x-auto h-12">
                     {TABS.map(tab => (
@@ -187,7 +202,7 @@ export default function ResultCard({ scan, fixes, onExport }) {
 
             {/* Content — all panels always mounted, visibility toggled via CSS */}
             <div className="w-full min-h-[400px] max-h-[600px] overflow-y-auto bg-white dark:bg-zinc-950">
-                {/* Analysis — always mounted so TypewriterText ref persists */}
+                {/* Analysis */}
                 <div className={`p-6 lg:p-8 ${activeTab === 'analysis' ? 'block' : 'hidden'}`}>
                     <TypewriterText text={scan.analysis} />
                 </div>
@@ -212,23 +227,16 @@ export default function ResultCard({ scan, fixes, onExport }) {
                     )}
                 </div>
 
-                {/* Nmap */}
-                <div className={`p-6 lg:p-8 ${activeTab === 'nmap' ? 'block' : 'hidden'}`}>
-                    <div className="bg-zinc-900 rounded-lg p-5 border border-zinc-800 overflow-hidden">
-                        <pre className="text-[11px] font-mono text-slate-300 leading-relaxed m-0 whitespace-pre-wrap break-all">
-                            {scan['nmap'] || 'No raw nmap data available.'}
-                        </pre>
+                {/* Dynamic tool output panels */}
+                {toolTabs.map(tab => (
+                    <div key={tab.id} className={`p-6 lg:p-8 ${activeTab === tab.id ? 'block' : 'hidden'}`}>
+                        <div className="bg-zinc-900 rounded-lg p-5 border border-zinc-800 overflow-hidden">
+                            <pre className="text-[11px] font-mono text-slate-300 leading-relaxed m-0 whitespace-pre-wrap break-all">
+                                {scan[tab.id] || `No ${tab.label} data available.`}
+                            </pre>
+                        </div>
                     </div>
-                </div>
-
-                {/* Nikto */}
-                <div className={`p-6 lg:p-8 ${activeTab === 'nikto' ? 'block' : 'hidden'}`}>
-                    <div className="bg-zinc-900 rounded-lg p-5 border border-zinc-800 overflow-hidden">
-                        <pre className="text-[11px] font-mono text-slate-300 leading-relaxed m-0 whitespace-pre-wrap break-all">
-                            {scan['nikto'] || 'No raw nikto data available.'}
-                        </pre>
-                    </div>
-                </div>
+                ))}
             </div>
         </Card>
     )

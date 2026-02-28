@@ -100,3 +100,124 @@ RULES:
         logger.error(f"Failed to parse Unified AI Response: {e}")
         # Fallback if AI fails to return valid JSON
         return {"action": "chat", "message": "I processed that, but encountered a formatting error on my end. Could you rephrase?"}
+
+
+# ═══════════════════════════════════════════════════════════════
+# AGENT: AI TOOL SELECTION (v2)
+# ═══════════════════════════════════════════════════════════════
+
+def select_tools(nmap_output: str, available_tools: list) -> list:
+    """
+    AI decides which follow-up tools to run after Nmap based on findings.
+    Returns a list of tool names to execute.
+    """
+    tool_descriptions = "\n".join(
+        f"- {t['name']}: {t['description']} (triggers on ports: {', '.join(t['ports'])})"
+        for t in available_tools
+    )
+
+    prompt = f"""You are a security assessment agent. Based on the Nmap scan results below, decide which follow-up tools to run.
+
+AVAILABLE TOOLS:
+{tool_descriptions}
+
+NMAP SCAN RESULTS:
+{nmap_output[:3000]}
+
+RULES:
+1. Select ONLY tools whose relevant ports are open in the Nmap results.
+2. If no web ports (80, 443, 8080, 8443) are open, do NOT select web-focused tools.
+3. If port 443 is open, select sslscan for TLS audit.
+4. If any web port is open, select nikto for vulnerability scanning.
+5. Respond with ONLY a raw JSON array of tool names. Example: ["nikto", "sslscan"]
+6. If no follow-up tools are appropriate, respond with: []
+"""
+
+    try:
+        response = ask_kimi(prompt, system_prompt="You are a security tool orchestrator. Respond ONLY with JSON.")
+        clean = response.replace("```json", "").replace("```", "").strip()
+        selected = json.loads(clean)
+        if isinstance(selected, list):
+            # Validate tool names
+            valid_names = {t['name'] for t in available_tools}
+            return [name for name in selected if name in valid_names]
+    except Exception as e:
+        logger.error(f"AI tool selection failed: {e}")
+
+    # Fallback: use port-based heuristic
+    logger.info("Falling back to port-based tool selection")
+    return [t['name'] for t in available_tools if any(
+        f"{p}/tcp" in nmap_output or f" {p}/" in nmap_output
+        for p in t['ports']
+    )]
+
+
+# ═══════════════════════════════════════════════════════════════
+# CONVERSATION MEMORY (v2)
+# ═══════════════════════════════════════════════════════════════
+
+# In-memory per-scan conversation history
+_conversation_memory: dict = {}
+
+def chat_with_context(message: str, scan_id: str = None, scan_data: dict = None) -> str:
+    """
+    AI chat with scan context awareness. Enables follow-up questions about results.
+    """
+    # Build conversation history
+    if scan_id not in _conversation_memory:
+        _conversation_memory[scan_id] = []
+
+    history = _conversation_memory.get(scan_id, [])
+
+    # Build system prompt with scan context
+    system_prompt = "You are Sentra.AI, an expert cybersecurity assistant."
+
+    if scan_data:
+        context = f"""
+You have access to the following scan data for context:
+- Target: {scan_data.get('target', 'unknown')}
+- Risk Score: {scan_data.get('risk_score', 'N/A')}/10 ({scan_data.get('risk_label', 'N/A')})
+- Open Ports Summary: {scan_data.get('nmap', 'No data')[:500]}
+- AI Analysis: {scan_data.get('analysis', 'No analysis')[:1000]}
+- Tools Used: {', '.join(scan_data.get('tools_used', ['nmap', 'nikto']))}
+
+Use this context to answer the user's follow-up questions precisely. Reference specific findings and ports when relevant.
+"""
+        system_prompt += context
+
+    # Build messages with recent history (keep last 6 turns)
+    messages = [{"role": "system", "content": system_prompt}]
+    for turn in history[-6:]:
+        messages.append(turn)
+    messages.append({"role": "user", "content": message})
+
+    try:
+        load_dotenv(override=True)
+        api_key = os.getenv("OPENROUTER_API_KEY")
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "X-Title": "Sentra.AI"
+        }
+
+        payload = {
+            "model": MODEL,
+            "messages": messages,
+            "temperature": 0.3
+        }
+
+        resp = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=60)
+        if resp.status_code == 200:
+            reply = resp.json()['choices'][0]['message']['content']
+
+            # Save to memory
+            if scan_id:
+                _conversation_memory.setdefault(scan_id, [])
+                _conversation_memory[scan_id].append({"role": "user", "content": message})
+                _conversation_memory[scan_id].append({"role": "assistant", "content": reply})
+
+            return reply
+        return f"AI Error ({resp.status_code}): {resp.text}"
+    except Exception as e:
+        return f"Connection Failed: {e}"
