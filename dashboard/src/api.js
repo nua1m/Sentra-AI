@@ -20,11 +20,13 @@ export async function fetchFixes(scanId) {
     return res.json();
 }
 
-export async function startScan(target) {
+export async function startScan(target, requestedTools) {
+    const body = { target }
+    if (requestedTools) body.requested_tools = requestedTools
     const res = await fetch(`${API_BASE}/scan/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target })
+        body: JSON.stringify(body)
     });
     return res.json();
 }

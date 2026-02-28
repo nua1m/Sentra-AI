@@ -1,51 +1,100 @@
 import { Card } from "@/components/ui/card"
 
-const STAGES = [
-    { key: 'nmap', label: 'Network Scan', sub: 'Nmap', icon: 'lan' },
-    { key: 'nikto', label: 'Web Audit', sub: 'Nikto', icon: 'language' },
-    { key: 'ai', label: 'AI Analysis', sub: 'Threat Intel', icon: 'psychology' },
-    { key: 'fixes', label: 'Remediation', sub: 'Playbooks', icon: 'build' },
-]
+// Default stages — will be filtered based on what tools are actually being used
+const ALL_STAGES = {
+    nmap: { key: 'nmap', label: 'Network Scan', sub: 'Nmap', icon: 'lan' },
+    nikto: { key: 'nikto', label: 'Web Audit', sub: 'Nikto', icon: 'language' },
+    sslscan: { key: 'sslscan', label: 'TLS Audit', sub: 'SSLScan', icon: 'lock' },
+    gobuster: { key: 'gobuster', label: 'Dir Enum', sub: 'Gobuster', icon: 'folder_open' },
+    ai: { key: 'ai', label: 'AI Analysis', sub: 'Threat Intel', icon: 'psychology' },
+    fixes: { key: 'fixes', label: 'Remediation', sub: 'Playbooks', icon: 'build' },
+}
 
-function getStageState(stageKey, scanStage) {
-    const order = ['nmap', 'nikto', 'ai', 'fixes']
-    const stageMap = {
-        'nmap_running': { current: 'nmap', doneUpTo: -1 },
-        'nmap_done': { current: null, doneUpTo: 0 },
-        'nikto_running': { current: 'nikto', doneUpTo: 0 },
-        'nikto_done': { current: null, doneUpTo: 1 },
-        'analyzing': { current: 'ai', doneUpTo: 1 },
-        'generating_fixes': { current: 'fixes', doneUpTo: 2 },
-        'complete': { current: null, doneUpTo: 3 },
+function buildStages(toolsUsed) {
+    // Build dynamic stages from tools_used array
+    const stages = []
+
+    // Add tool stages in order
+    const toolOrder = ['nmap', 'nikto', 'sslscan', 'gobuster']
+    for (const tool of toolOrder) {
+        if (toolsUsed.includes(tool) && ALL_STAGES[tool]) {
+            stages.push(ALL_STAGES[tool])
+        }
     }
 
-    const info = stageMap[scanStage] || { current: null, doneUpTo: -1 }
+    // Always add AI + Fixes at the end
+    stages.push(ALL_STAGES.ai)
+    stages.push(ALL_STAGES.fixes)
+
+    return stages
+}
+
+function getStageState(stageKey, scanStage, stages) {
+    const order = stages.map(s => s.key)
     const idx = order.indexOf(stageKey)
 
-    if (info.current === stageKey) return 'active'
-    if (idx <= info.doneUpTo) return 'done'
+    // Map scan_stage values to current/done states
+    for (let i = 0; i < order.length; i++) {
+        const key = order[i]
+        if (scanStage === `${key}_running`) {
+            if (stageKey === key) return 'active'
+            return idx < i ? 'done' : 'pending'
+        }
+        if (scanStage === `${key}_done`) {
+            return idx <= i ? 'done' : 'pending'
+        }
+    }
+
+    // Handle special stages
+    if (scanStage === 'analyzing') {
+        const aiIdx = order.indexOf('ai')
+        if (stageKey === 'ai') return 'active'
+        return idx < aiIdx ? 'done' : 'pending'
+    }
+    if (scanStage === 'generating_fixes') {
+        const fixIdx = order.indexOf('fixes')
+        if (stageKey === 'fixes') return 'active'
+        return idx < fixIdx ? 'done' : 'pending'
+    }
+    if (scanStage === 'complete') return 'done'
+
     return 'pending'
 }
 
-function getProgressWidth(scanStage) {
-    const stageMap = {
-        'nmap_running': 12,
-        'nmap_done': 25,
-        'nikto_running': 37,
-        'nikto_done': 50,
-        'analyzing': 62,
-        'generating_fixes': 87,
-        'complete': 100,
+function getProgressWidth(scanStage, stages) {
+    const total = stages.length
+    const order = stages.map(s => s.key)
+
+    for (let i = 0; i < order.length; i++) {
+        const key = order[i]
+        if (scanStage === `${key}_running`) {
+            return Math.round(((i + 0.5) / total) * 100)
+        }
+        if (scanStage === `${key}_done`) {
+            return Math.round(((i + 1) / total) * 100)
+        }
     }
-    return stageMap[scanStage] || 0
+
+    if (scanStage === 'analyzing') {
+        const aiIdx = order.indexOf('ai')
+        return Math.round(((aiIdx + 0.5) / total) * 100)
+    }
+    if (scanStage === 'generating_fixes') {
+        const fixIdx = order.indexOf('fixes')
+        return Math.round(((fixIdx + 0.5) / total) * 100)
+    }
+    if (scanStage === 'complete') return 100
+
+    return 0
 }
 
-export default function ScanViz({ scanStage }) {
+export default function ScanViz({ scanStage, toolsUsed }) {
     const isComplete = scanStage === 'complete'
-    const progress = getProgressWidth(scanStage)
+    const stages = buildStages(toolsUsed || ['nmap'])
+    const progress = getProgressWidth(scanStage, stages)
 
     return (
-        <Card className="p-0 mt-4 max-w-2xl w-full overflow-hidden border-border-light shadow-sm">
+        <Card className="p-0 mt-4 max-w-3xl w-full overflow-hidden border-border-light shadow-sm">
             {/* Header */}
             <div className="flex justify-between items-center px-6 pt-5 pb-4">
                 <div className="flex items-center gap-3">
@@ -79,11 +128,11 @@ export default function ScanViz({ scanStage }) {
                 </div>
             </div>
 
-            {/* Pipeline Nodes */}
+            {/* Pipeline Nodes — dynamic grid based on number of stages */}
             <div className="px-4 pb-5">
-                <div className="grid grid-cols-4 gap-2">
-                    {STAGES.map((stage) => {
-                        const state = getStageState(stage.key, scanStage)
+                <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}>
+                    {stages.map((stage) => {
+                        const state = getStageState(stage.key, scanStage, stages)
                         return (
                             <div
                                 key={stage.key}
@@ -137,11 +186,17 @@ export default function ScanViz({ scanStage }) {
 }
 
 function getStatusText(stage) {
+    // Handle dynamic tool stages
+    if (stage?.endsWith('_running')) {
+        const tool = stage.replace('_running', '')
+        return `Running ${tool} scan...`
+    }
+    if (stage?.endsWith('_done')) {
+        const tool = stage.replace('_done', '')
+        return `${tool} scan complete. Parsing output...`
+    }
+
     const map = {
-        'nmap_running': 'Running network discovery and service enumeration...',
-        'nmap_done': 'Network scan complete. Parsing output...',
-        'nikto_running': 'Executing web application vulnerability assessment...',
-        'nikto_done': 'Web audit complete. Aggregating data...',
         'analyzing': 'AI engine processing threat intelligence...',
         'generating_fixes': 'Generating remediation playbooks...',
         'complete': 'All phases complete. Report ready.',

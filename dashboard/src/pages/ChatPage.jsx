@@ -114,31 +114,18 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
 
                 setMessages(prev => prev.map(m => {
                     if (m.scanId === activeScanMsg.scanId) {
-                        const serverStage = data.scan_stage || data.status
-                        const isComplete = data.status === 'complete'
-
-                        const STAGES = ['nmap_running', 'nmap_done', 'nikto_running', 'nikto_done', 'analyzing', 'generating_fixes', 'complete']
-                        const getStageIdx = (s) => STAGES.indexOf(s)
-
-                        const currentIdx = getStageIdx(m.stage || 'nmap_running')
-                        const serverIdx = getStageIdx(serverStage)
-
                         if (m.type === 'scan_result') return m
 
-                        let nextStage = m.stage
+                        const serverStage = data.scan_stage || data.status
+                        const isComplete = data.status === 'complete'
+                        const toolsUsed = data.tools_used || m.toolsUsed || ['nmap']
 
-                        if (currentIdx < serverIdx || (isComplete && currentIdx < STAGES.length - 1)) {
-                            nextStage = STAGES[currentIdx + 1]
-                        } else {
-                            nextStage = serverStage
-                        }
-
-                        if (nextStage === 'complete' || (isComplete && currentIdx >= STAGES.indexOf('generating_fixes'))) {
+                        if (isComplete) {
                             onScanComplete?.()
-                            return { ...m, type: 'scan_result', data, fixes: null, stage: 'complete' }
+                            return { ...m, type: 'scan_result', data, fixes: null, stage: 'complete', toolsUsed }
                         }
 
-                        return { ...m, stage: nextStage }
+                        return { ...m, stage: serverStage, toolsUsed }
                     }
                     return m
                 }))
@@ -181,7 +168,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
             const data = await res.json()
 
             if (data.type === 'action_required' && data.action === 'start_scan') {
-                const scanRes = await startScan(data.target)
+                const scanRes = await startScan(data.target, data.requested_tools)
                 if (scanRes.scan_id) {
                     onScanStarted?.(scanRes.scan_id)
                     setMessages(prev => [...prev, {
@@ -190,7 +177,8 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                         type: 'scan_running',
                         scanId: scanRes.scan_id,
                         stage: 'nmap_running',
-                        target: data.target
+                        target: data.target,
+                        toolsUsed: data.requested_tools || ['nmap']
                     }])
                 } else {
                     setMessages(prev => [...prev, { role: 'ai', text: `[ERROR] Launch Failed: ${scanRes.detail}` }])
@@ -308,7 +296,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                             {/* Widgets */}
                                             {(msg.type === 'scan_running' || msg.type === 'scan_result') && (
                                                 <div className="mt-2 w-full min-w-[320px] space-y-4">
-                                                    <ScanViz scanStage={msg.type === 'scan_result' ? 'complete' : msg.stage} />
+                                                    <ScanViz scanStage={msg.type === 'scan_result' ? 'complete' : msg.stage} toolsUsed={msg.toolsUsed || ['nmap']} />
 
                                                     {/* Live Terminal Streaming View */}
                                                     {msg.type === 'scan_running' && (

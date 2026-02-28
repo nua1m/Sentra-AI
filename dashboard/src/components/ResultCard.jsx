@@ -230,10 +230,8 @@ export default function ResultCard({ scan, fixes, onExport }) {
                 {/* Dynamic tool output panels */}
                 {toolTabs.map(tab => (
                     <div key={tab.id} className={`p-6 lg:p-8 ${activeTab === tab.id ? 'block' : 'hidden'}`}>
-                        <div className="bg-zinc-900 rounded-lg p-5 border border-zinc-800 overflow-hidden">
-                            <pre className="text-[11px] font-mono text-slate-300 leading-relaxed m-0 whitespace-pre-wrap break-all">
-                                {scan[tab.id] || `No ${tab.label} data available.`}
-                            </pre>
+                        <div className="bg-zinc-900 rounded-lg p-5 border border-zinc-800 w-full">
+                            <pre className="text-[11px] font-mono text-slate-300 leading-relaxed m-0 whitespace-pre-wrap break-words w-full">{scan[tab.id] || `No ${tab.label} data available.`}</pre>
                         </div>
                     </div>
                 ))}

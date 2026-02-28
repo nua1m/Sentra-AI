@@ -75,7 +75,17 @@ def process_chat_query(message: str) -> dict:
     Makes only ONE call to the AI to slash latency in half.
     Returns JSON: {"action": "scan", "target": "..."} OR {"action": "chat", "message": "..."}
     """
-    # 1. Faster Regex Check (Skips AI entirely for obvious commands)
+    # 1. Tool-specific scan request (e.g. "run nmap on localhost", "nmap 192.168.1.1")
+    tool_names = ["nmap", "nikto", "sslscan", "gobuster"]
+    tool_pattern = "|".join(tool_names)
+    tool_match = re.search(
+        rf"^(?:run|execute|use|start)?\s*({tool_pattern})\s+(?:on\s+|against\s+)?([a-zA-Z0-9.-]+)$",
+        message.strip(), re.IGNORECASE
+    )
+    if tool_match:
+        return {"action": "scan", "target": tool_match.group(2), "tools": [tool_match.group(1).lower()]}
+
+    # 2. General scan request (e.g. "scan localhost", "check example.com")
     scan_match = re.search(r"^(?:scan|check|test|analyze)\s+([a-zA-Z0-9.-]+)$", message.strip(), re.IGNORECASE)
     if scan_match:
         return {"action": "scan", "target": scan_match.group(1)}

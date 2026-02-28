@@ -76,6 +76,7 @@ class ChatRequest(BaseModel):
 
 class ScanRequest(BaseModel):
     target: str
+    requested_tools: list[str] | None = None  # e.g. ["nmap"] for nmap-only
 
 
 async def _narrate(scan_id: str, text: str, delay: float = 0.06):
@@ -122,10 +123,12 @@ def _calculate_risk_score(open_ports: int, vuln_count: int, fixes: dict) -> floa
     return round(min(score, 10.0), 1)
 
 
-async def run_background_scan(scan_id: str, target: str):
+async def run_background_scan(scan_id: str, target: str, requested_tools: list[str] | None = None):
     scans[scan_id]["status"] = "scanning"
     scans[scan_id]["scan_stage"] = "nmap_running"
     scans[scan_id]["tools_used"] = ["nmap"]  # Track which tools ran
+    if requested_tools:
+        scans[scan_id]["requested_tools"] = requested_tools
     update_scan_status(scan_id, "scanning", scan_stage="nmap_running")
 
     # Grab tools from registry
@@ -222,9 +225,15 @@ async def run_background_scan(scan_id: str, target: str):
         for t in available_followups
     ]
 
-    # AI decides which tools to run
-    selected_names = await asyncio.to_thread(select_tools, nmap_out, tool_info)
-    selected_tools = [t for t in available_followups if t.name in selected_names]
+    # AI decides which tools to run (SKIP if user requested specific tools)
+    only_nmap = requested_tools and requested_tools == ["nmap"]
+    if only_nmap:
+        selected_names = []
+        selected_tools = []
+        await _narrate(scan_id, "\x1b[33m[AGENT]\x1b[0m User requested Nmap only — skipping follow-up tools.\r\n", 0.4)
+    else:
+        selected_names = await asyncio.to_thread(select_tools, nmap_out, tool_info)
+        selected_tools = [t for t in available_followups if t.name in selected_names]
 
     if selected_tools:
         await _narrate(scan_id, f"\x1b[1;33m[AGENT]\x1b[0m Selected \x1b[1;37m{len(selected_tools)}\x1b[0m follow-up tool(s):\r\n", 0.4)
@@ -445,6 +454,7 @@ async def chat_endpoint(req: ChatRequest2):
 
     if intent.get("action") == "scan" and intent.get("target"):
         target = intent["target"]
+        tools = intent.get("tools")  # e.g. ["nmap"] if user said "run nmap"
 
         if not verify_target_ownership(target):
             return {
@@ -453,12 +463,15 @@ async def chat_endpoint(req: ChatRequest2):
                            f"Strict Mode Enabled. You must host 'sentra-verify.txt' on the target."
             }
 
-        return {
+        result = {
             "type": "action_required",
             "action": "start_scan",
             "target": target,
             "message": f"Target {target} Verified. Ready to launch Scan."
         }
+        if tools:
+            result["requested_tools"] = tools
+        return result
 
     return {"type": "message", "message": intent.get("message", "No response generated.")}
 
@@ -475,7 +488,7 @@ async def start_scan_endpoint(req: ScanRequest, bg_tasks: BackgroundTasks):
     scans[scan_id] = scan_data
     save_scan(scan_id, scan_data)
 
-    bg_tasks.add_task(run_background_scan, scan_id, req.target)
+    bg_tasks.add_task(run_background_scan, scan_id, req.target, req.requested_tools)
     return {"scan_id": scan_id, "status": "started"}
 
 
