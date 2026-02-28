@@ -1,8 +1,10 @@
-from fpdf import FPDF
-from fpdf.enums import XPos, YPos
 import os
 import textwrap
 from datetime import datetime
+
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
+
 
 def sanitize_text(text: str) -> str:
     """Remove non-Latin1 characters that FPDF can't handle."""

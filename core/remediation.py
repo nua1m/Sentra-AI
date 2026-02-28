@@ -2,9 +2,9 @@
 Sentra.AI Remediation Module
 Generates actionable fix commands from scan findings.
 """
-import re
 import logging
-from typing import Dict, List, Optional
+import re
+
 from .intelligence import ask_kimi
 
 logger = logging.getLogger("sentra.remediation")
@@ -32,7 +32,7 @@ FIX_DATABASE = {
             "sudo ufw deny 445/tcp"
         ]
     },
-    
+
     # RPC/DCOM
     "135/tcp": {
         "description": "MSRPC - Used for DCOM, potential for RPC exploits",
@@ -46,7 +46,7 @@ FIX_DATABASE = {
             "sudo ufw deny 135/tcp"
         ]
     },
-    
+
     # Telnet
     "23/tcp": {
         "description": "Telnet - Unencrypted remote access (CRITICAL)",
@@ -62,7 +62,7 @@ FIX_DATABASE = {
             "sudo apt remove telnetd -y  # Debian/Ubuntu"
         ]
     },
-    
+
     # FTP
     "21/tcp": {
         "description": "FTP - Unencrypted file transfer",
@@ -77,7 +77,7 @@ FIX_DATABASE = {
             "sudo systemctl stop vsftpd && sudo systemctl disable vsftpd"
         ]
     },
-    
+
     # HTTP (may need hardening)
     "80/tcp": {
         "description": "HTTP - Unencrypted web traffic",
@@ -143,37 +143,37 @@ NIKTO_FIXES = {
 }
 
 
-def detect_os_from_scan(nmap_output: Optional[str]) -> str:
+def detect_os_from_scan(nmap_output: str | None) -> str:
     """
     Attempts to detect target OS from Nmap output.
     Returns 'windows', 'linux', or 'unknown'.
     """
     if not nmap_output:
         return "unknown"
-        
+
     nmap_lower = nmap_output.lower()
-    
+
     # Windows indicators
     windows_indicators = ["microsoft", "windows", "msrpc", "microsoft-ds", "netbios"]
     if any(ind in nmap_lower for ind in windows_indicators):
         return "windows"
-    
+
     # Linux indicators
     linux_indicators = ["ubuntu", "debian", "centos", "linux", "openssh", "apache"]
     if any(ind in nmap_lower for ind in linux_indicators):
         return "linux"
-    
+
     return "unknown"
 
 
-def parse_open_ports(nmap_output: Optional[str]) -> List[str]:
+def parse_open_ports(nmap_output: str | None) -> list[str]:
     """
     Extracts open ports from Nmap output.
     Returns list like ['22/tcp', '80/tcp', '445/tcp']
     """
     if not nmap_output:
         return []
-        
+
     ports = []
     for line in nmap_output.split("\n"):
         # Match lines like "22/tcp  open  ssh"
@@ -183,10 +183,10 @@ def parse_open_ports(nmap_output: Optional[str]) -> List[str]:
     return ports
 
 
-def generate_fixes(nmap_output: str, nikto_output: str = "", os_hint: Optional[str] = None) -> Dict:
+def generate_fixes(nmap_output: str, nikto_output: str = "", os_hint: str | None = None) -> dict:
     """
     Main function to generate remediation commands.
-    
+
     Returns:
     {
         "os_detected": "windows",
@@ -204,9 +204,9 @@ def generate_fixes(nmap_output: str, nikto_output: str = "", os_hint: Optional[s
     # Detect OS if not provided
     detected_os = os_hint or detect_os_from_scan(nmap_output)
     logger.info(f"OS Detection: {detected_os}")
-    
+
     findings = []
-    
+
     # 1. Process Nmap ports
     open_ports = parse_open_ports(nmap_output)
     for port in open_ports:
@@ -221,7 +221,7 @@ def generate_fixes(nmap_output: str, nikto_output: str = "", os_hint: Optional[s
                 "severity": fix_info["severity"],
                 "commands": commands
             })
-    
+
     # 2. Process Nikto findings
     nikto_lower = (nikto_output or "").lower()
     for pattern, fix_info in NIKTO_FIXES.items():
@@ -235,13 +235,13 @@ def generate_fixes(nmap_output: str, nikto_output: str = "", os_hint: Optional[s
                 "severity": fix_info["severity"],
                 "commands": commands
             })
-    
+
     # 3. AI fallback for complex findings
     ai_recommendations = ""
     if len(findings) < 2 or "unknown" in detected_os:
         # Ask AI for additional recommendations
         ai_recommendations = _ask_ai_for_fixes(nmap_output, nikto_output, detected_os)
-    
+
     return {
         "os_detected": detected_os,
         "findings": findings,
@@ -249,31 +249,31 @@ def generate_fixes(nmap_output: str, nikto_output: str = "", os_hint: Optional[s
     }
 
 
-def _ask_ai_for_fixes(nmap_output: Optional[str], nikto_output: Optional[str], os_type: str) -> str:
+def _ask_ai_for_fixes(nmap_output: str | None, nikto_output: str | None, os_type: str) -> str:
     """
     Asks AI to generate fix commands for findings not in our database.
     """
     safe_nmap = (nmap_output or "No NMAP output provided.")[:2000]
     safe_nikto = (nikto_output or "No NIKTO output provided.")[:2000]
-    
+
     prompt = f"""
     Based on these scan results, generate specific remediation commands.
     Target OS appears to be: {os_type}
-    
+
     === NMAP ===
     {safe_nmap}
-    
+
     === NIKTO ===
     {safe_nikto}
-    
+
     For each vulnerability found, provide:
     1. What the issue is
     2. The exact command to fix it (copy-pasteable)
     3. Mark severity as CRITICAL, HIGH, MEDIUM, or LOW
-    
+
     Format as a numbered list. Focus on actionable commands, not general advice.
     """
-    
+
     try:
         return ask_kimi(prompt, system_prompt="You are a Blue Team security engineer. Generate safe, specific remediation commands.")
     except Exception as e:
@@ -281,34 +281,34 @@ def _ask_ai_for_fixes(nmap_output: Optional[str], nikto_output: Optional[str], o
         return "AI fix generation temporarily unavailable due to connectivity issues."
 
 
-def format_fixes_for_display(fixes_data: Dict) -> str:
+def format_fixes_for_display(fixes_data: dict) -> str:
     """
     Formats fixes for CLI display with Rich-compatible markdown.
     """
     lines = []
     lines.append(f"**Detected OS:** {fixes_data['os_detected'].upper()}")
     lines.append("")
-    
+
     if not fixes_data["findings"]:
         lines.append("No specific fixes found in database. See AI recommendations below.")
     else:
         for i, finding in enumerate(fixes_data["findings"], 1):
             severity = finding["severity"]
-            severity_color = {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "green"}.get(severity, "white")
-            
+            {"CRITICAL": "red", "HIGH": "red", "MEDIUM": "yellow", "LOW": "green"}.get(severity, "white")
+
             lines.append(f"### Fix #{i}: [{severity}] {finding['description']}")
             if "port" in finding:
                 lines.append(f"*Source: Nmap - Port {finding['port']}*")
             else:
                 lines.append(f"*Source: Nikto - {finding.get('finding', 'Web vulnerability')}*")
-            
+
             lines.append("```powershell" if fixes_data["os_detected"] == "windows" else "```bash")
             lines.extend(finding["commands"])
             lines.append("```")
             lines.append("")
-    
+
     if fixes_data.get("ai_recommendations"):
         lines.append("### Additional AI Recommendations")
         lines.append(fixes_data["ai_recommendations"])
-    
+
     return "\n".join(lines)

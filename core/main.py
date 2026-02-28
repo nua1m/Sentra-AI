@@ -1,22 +1,23 @@
-from fastapi import FastAPI, BackgroundTasks, HTTPException, WebSocket, WebSocketDisconnect
+import asyncio
+import logging
+import sys
+import uuid
+
+from fastapi import BackgroundTasks, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import logging
-import uuid
-import asyncio
-import sys
 
 # Windows requires ProactorEventLoop for subprocesses
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
+import contextlib
 from datetime import datetime
-from typing import Dict, List
 
+from .database import delete_scan, get_scan, list_scans, save_scan, update_scan_status
+from .intelligence import ask_kimi, chat_with_context, process_chat_query, select_tools
 from .security import verify_target_ownership
-from .tools import TOOL_REGISTRY, get_tool, get_available_tools, get_followup_tools
-from .intelligence import process_chat_query, ask_kimi, analyze_results, select_tools, chat_with_context
-from .database import save_scan, get_scan, list_scans, update_scan_status, delete_scan
+from .tools import TOOL_REGISTRY, get_available_tools, get_tool
 
 # Setup
 app = FastAPI(title="Sentra.AI Core")
@@ -33,27 +34,25 @@ app.add_middleware(
 )
 
 # In-memory cache (mirrors SQLite for active scans)
-scans: Dict[str, dict] = {}
+scans: dict[str, dict] = {}
 
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, List[WebSocket]] = {}
-        self.scan_logs: Dict[str, List[str]] = {}
+        self.active_connections: dict[str, list[WebSocket]] = {}
+        self.scan_logs: dict[str, list[str]] = {}
 
     async def connect(self, websocket: WebSocket, scan_id: str):
         await websocket.accept()
         if scan_id not in self.active_connections:
             self.active_connections[scan_id] = []
         self.active_connections[scan_id].append(websocket)
-        
+
         # Send history
         if scan_id in self.scan_logs:
             for line in self.scan_logs[scan_id]:
-                try:
+                with contextlib.suppress(Exception):
                     await websocket.send_text(line)
-                except Exception:
-                    pass
 
     def disconnect(self, websocket: WebSocket, scan_id: str):
         if scan_id in self.active_connections and websocket in self.active_connections[scan_id]:
@@ -63,13 +62,11 @@ class ConnectionManager:
         if scan_id not in self.scan_logs:
             self.scan_logs[scan_id] = []
         self.scan_logs[scan_id].append(message)
-        
+
         if scan_id in self.active_connections:
             for connection in self.active_connections[scan_id]:
-                try:
+                with contextlib.suppress(Exception):
                     await connection.send_text(message)
-                except Exception:
-                    pass
 
 manager = ConnectionManager()
 
@@ -96,7 +93,7 @@ async def _narrate_block(scan_id: str, lines: list, delay: float = 0.06):
 def _calculate_risk_score(open_ports: int, vuln_count: int, fixes: dict) -> float:
     """Heuristic risk scoring: 0–10 scale based on scan findings."""
     score = 0.0
-    
+
     # Port exposure (max 3 points)
     if open_ports >= 5:
         score += 3.0
@@ -104,7 +101,7 @@ def _calculate_risk_score(open_ports: int, vuln_count: int, fixes: dict) -> floa
         score += 2.0
     elif open_ports >= 1:
         score += 1.0
-    
+
     # Web vulnerabilities (max 3 points)
     if vuln_count >= 10:
         score += 3.0
@@ -112,7 +109,7 @@ def _calculate_risk_score(open_ports: int, vuln_count: int, fixes: dict) -> floa
         score += 2.0
     elif vuln_count >= 1:
         score += 1.0
-    
+
     # Severity of fixes (max 4 points)
     if fixes and fixes.get("findings"):
         severity_weights = {"critical": 2.0, "high": 1.5, "medium": 0.5, "low": 0.2}
@@ -121,7 +118,7 @@ def _calculate_risk_score(open_ports: int, vuln_count: int, fixes: dict) -> floa
             for f in fixes["findings"]
         )
         score += min(severity_score, 4.0)
-    
+
     return round(min(score, 10.0), 1)
 
 
@@ -183,7 +180,7 @@ async def run_background_scan(scan_id: str, target: str):
     nmap_out = "".join(nmap_lines)
 
     # Extract open port numbers
-    open_port_lines = [l for l in nmap_lines if '/tcp' in l and 'open' in l]
+    open_port_lines = [line for line in nmap_lines if '/tcp' in line and 'open' in line]
     open_ports_count = len(open_port_lines)
     import re
     open_port_numbers = []
@@ -277,7 +274,7 @@ async def run_background_scan(scan_id: str, target: str):
         # Track nikto-specific stats
         if tool.name == "nikto":
             nikto_out = tool_output
-            vuln_count = sum(1 for l in tool_lines if l.strip().startswith('+') or 'OSVDB' in l)
+            vuln_count = sum(1 for line in tool_lines if line.strip().startswith('+') or 'OSVDB' in line)
 
         finding_count = len(tool_lines)
         await _narrate(scan_id, "\r\n", 0.2)
@@ -319,10 +316,10 @@ async def run_background_scan(scan_id: str, target: str):
     analysis_prompt = f"""
     Analyze these security scan results and provide a concise assessment.
     Tools used: {', '.join(tools_used)}
-    
+
     === NMAP SCAN ===
     {nmap_out[:3000]}
-    
+
     === NIKTO WEB SCAN ===
     {combined_nikto[:3000]}
     {extra_context}
@@ -407,7 +404,7 @@ async def websocket_endpoint(websocket: WebSocket, scan_id: str):
     await manager.connect(websocket, scan_id)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket, scan_id)
 
@@ -435,10 +432,7 @@ async def chat_endpoint(req: ChatRequest2):
     # If scan_id is provided, use contextual chat
     if req.scan_id:
         scan_data = None
-        if req.scan_id in scans:
-            scan_data = scans[req.scan_id]
-        else:
-            scan_data = get_scan(req.scan_id)
+        scan_data = scans[req.scan_id] if req.scan_id in scans else get_scan(req.scan_id)
 
         if scan_data and scan_data.get("status") == "complete":
             response = await asyncio.to_thread(
@@ -473,14 +467,14 @@ async def chat_endpoint(req: ChatRequest2):
 async def start_scan_endpoint(req: ScanRequest, bg_tasks: BackgroundTasks):
     if not verify_target_ownership(req.target):
         raise HTTPException(403, "Verification Failed")
-        
+
     scan_id = str(uuid.uuid4())
     now = datetime.now().isoformat()
     scan_data = {"target": req.target, "status": "pending", "created_at": now}
-    
+
     scans[scan_id] = scan_data
     save_scan(scan_id, scan_data)
-    
+
     bg_tasks.add_task(run_background_scan, scan_id, req.target)
     return {"scan_id": scan_id, "status": "started"}
 
@@ -491,8 +485,7 @@ def list_all_scans():
 
 @app.delete("/scan/{scan_id}")
 def delete_existing_scan(scan_id: str):
-    if scan_id in scans:
-        del scans[scan_id]
+    scans.pop(scan_id, None)
     delete_scan(scan_id)
     return {"status": "deleted"}
 
@@ -503,7 +496,7 @@ def get_scan_status(scan_id: str):
         data = scans[scan_id].copy()
         data["scan_id"] = scan_id
         return data
-    
+
     db_scan = get_scan(scan_id)
     if not db_scan:
         raise HTTPException(404, "Scan ID not found")
@@ -514,7 +507,7 @@ def get_scan_status(scan_id: str):
 def export_scan_pdf(scan_id: str):
     from fastapi.responses import FileResponse
     scan_data = _get_complete_scan(scan_id)
-    
+
     try:
         from .reporting import generate_pdf_report
         scan_data["scan_id"] = scan_id
@@ -526,15 +519,15 @@ def export_scan_pdf(scan_id: str):
         )
     except Exception as e:
         logger.error(f"PDF Export failed: {e}")
-        raise HTTPException(500, f"PDF generation failed: {str(e)}")
+        raise HTTPException(500, f"PDF generation failed: {e!s}")
 
 
 @app.get("/scan/{scan_id}/fixes")
 def get_scan_fixes(scan_id: str):
     scan_data = _get_complete_scan(scan_id)
-    
-    from .remediation import generate_fixes, format_fixes_for_display
-    
+
+    from .remediation import format_fixes_for_display, generate_fixes
+
     # Use cached fixes or generate new ones
     fixes = scan_data.get("fixes")
     if not fixes:
@@ -546,7 +539,7 @@ def get_scan_fixes(scan_id: str):
         if scan_id in scans:
             scans[scan_id]["fixes"] = fixes
         update_scan_status(scan_id, "complete", fixes=fixes)
-    
+
     return {
         "status": "generated",
         "os_detected": fixes.get("os_detected", "unknown"),
@@ -558,14 +551,11 @@ def get_scan_fixes(scan_id: str):
 
 def _get_complete_scan(scan_id: str) -> dict:
     """Helper to get a complete scan from memory or DB."""
-    if scan_id in scans:
-        data = scans[scan_id]
-    else:
-        data = get_scan(scan_id)
-    
+    data = scans[scan_id] if scan_id in scans else get_scan(scan_id)
+
     if not data:
         raise HTTPException(404, "Scan ID not found")
     if data.get("status") != "complete":
         raise HTTPException(400, "Scan not complete yet")
-    
+
     return data

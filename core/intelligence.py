@@ -1,7 +1,9 @@
-import os
-import requests
-import logging
 import json
+import logging
+import os
+import re
+
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -50,13 +52,13 @@ def ask_kimi(prompt: str, system_prompt: str = "You are Sentra.AI, a cybersecuri
 def analyze_results(nmap_output: str, nikto_output: str = "No Nikto scan performed.") -> str:
     prompt = f"""
     Analyze these security scan results (Nmap + Nikto) and provide a concise assessment:
-    
+
     === NMAP SCAN ===
     {nmap_output[:3000]}
-    
+
     === NIKTO WEB SCAN ===
     {nikto_output[:3000]}
-    
+
     Format as:
     1. **Summary**: What is running?
     2. **Risks**: Potential vulnerabilities (if any obvious versions).
@@ -64,7 +66,8 @@ def analyze_results(nmap_output: str, nikto_output: str = "No Nikto scan perform
     """
     return ask_kimi(prompt)
 
-import re
+
+
 
 def process_chat_query(message: str) -> dict:
     """
@@ -76,7 +79,7 @@ def process_chat_query(message: str) -> dict:
     scan_match = re.search(r"^(?:scan|check|test|analyze)\s+([a-zA-Z0-9.-]+)$", message.strip(), re.IGNORECASE)
     if scan_match:
         return {"action": "scan", "target": scan_match.group(1)}
-        
+
     # 2. Unified AI Call for everything else
     system_prompt = """You are Sentra.AI, an expert cybersecurity assistant.
 The user will provide a message. Determine if they want to initiate a vulnerability scan on a specific target (IP or domain), OR if they are asking a security-related question/chatting.
@@ -89,10 +92,10 @@ RULES:
 3. If the user is just asking a question (e.g. "What is Nmap?", "hello"), output a helpful, detailed response:
 {"action": "chat", "message": "<your response>"}
 """
-    
+
     try:
         response_text = ask_kimi(message, system_prompt=system_prompt)
-        
+
         # Strip markdown code blocks if present
         clean = response_text.replace("```json", "").replace("```", "").strip()
         return json.loads(clean)
@@ -159,7 +162,7 @@ RULES:
 # In-memory per-scan conversation history
 _conversation_memory: dict = {}
 
-def chat_with_context(message: str, scan_id: str = None, scan_data: dict = None) -> str:
+def chat_with_context(message: str, scan_id: str | None = None, scan_data: dict | None = None) -> str:
     """
     AI chat with scan context awareness. Enables follow-up questions about results.
     """

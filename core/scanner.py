@@ -1,7 +1,7 @@
+import asyncio
+import logging
 import shutil
 import subprocess
-import logging
-import asyncio
 import time
 
 logger = logging.getLogger("sentra.scanner")
@@ -9,13 +9,13 @@ logger = logging.getLogger("sentra.scanner")
 class Scanner:
     def __init__(self):
         self.nmap_paths = [shutil.which("nmap"), "C:\\Program Files (x86)\\Nmap\\nmap.exe"]
-        self.nmap_path = next((p for p in self.nmap_paths if p and shutil.which(p) or p), None)
-        
+        self.nmap_path = next((p for p in self.nmap_paths if (p and shutil.which(p)) or p), None)
+
         # Check for Local Nikto or Docker
         self.nikto_path = shutil.which("nikto")
         self.docker_path = shutil.which("docker")
         self.use_docker_nikto = False
-        
+
         if not self.nikto_path and self.docker_path:
             # Verify Docker Daemon is actually running
             try:
@@ -33,23 +33,23 @@ class Scanner:
 
     async def _stream_subprocess(self, cmd, timeout=120):
         try:
-            import threading
             import sys
-            
+            import threading
+
             loop = asyncio.get_running_loop()
             queue = asyncio.Queue()
-            
+
             # Use threading to completely bypass Windows event loop limitations
             # for subprocess streaming in Uvicorn/FastAPI
             creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
-                
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 creationflags=creationflags
             )
-            
+
             def _reader_thread():
                 try:
                     for line in iter(process.stdout.readline, b''):
@@ -61,10 +61,10 @@ class Scanner:
                     process.stdout.close()
                     process.wait()
                     loop.call_soon_threadsafe(queue.put_nowait, None) # EOF
-            
+
             thread = threading.Thread(target=_reader_thread, daemon=True)
             thread.start()
-            
+
             start_time = time.time()
             while True:
                 elapsed = time.time() - start_time
@@ -72,7 +72,7 @@ class Scanner:
                     process.terminate()
                     yield f"\n[!] Error: Command timed out after {timeout} seconds.\n"
                     break
-                    
+
                 try:
                     # Wait for next line from queue, timeout allows while loop to check total elapsed time
                     line = await asyncio.wait_for(queue.get(), timeout=1.0)
@@ -80,11 +80,11 @@ class Scanner:
                         break # EOF
                     yield line
                     queue.task_done()
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     continue
-                    
+
         except Exception as e:
-            yield f"\n[!] Execution Error: {repr(e)} | Command: {cmd}\n"
+            yield f"\n[!] Execution Error: {e!r} | Command: {cmd}\n"
 
     async def run_nmap_scan_stream(self, target: str):
         """
@@ -93,10 +93,10 @@ class Scanner:
         if not self.nmap_path:
             yield "Error: Nmap not found. Please install Nmap.\n"
             return
-            
+
         logger.info(f"Starting async Nmap on {target}")
         cmd = [self.nmap_path, "-F", "-T4", target]
-        
+
         async for line in self._stream_subprocess(cmd, timeout=120):
             yield line
 
@@ -109,7 +109,7 @@ class Scanner:
             return
 
         logger.info(f"Starting async Nikto on {target}")
-        
+
         # Handle Localhost for Docker on Windows
         scan_target = target
         if self.use_docker_nikto:
@@ -120,6 +120,6 @@ class Scanner:
             cmd = [self.docker_path, "run", "--rm", "frapsoft/nikto", "-h", f"http://{scan_target}:80", "-maxtime", "60"]
         else:
             cmd = [self.nikto_path, "-h", target, "-maxtime", "60"]
-            
+
         async for line in self._stream_subprocess(cmd, timeout=75):
             yield line
