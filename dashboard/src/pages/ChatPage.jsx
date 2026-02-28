@@ -295,7 +295,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
 
                                             {/* Widgets */}
                                             {(msg.type === 'scan_running' || msg.type === 'scan_result') && (
-                                                <div className="mt-2 w-full min-w-[320px] space-y-4">
+                                                <div className="mt-2 w-[680px] max-w-[85vw] space-y-4">
                                                     <ScanViz scanStage={msg.type === 'scan_result' ? 'complete' : msg.stage} toolsUsed={msg.toolsUsed || ['nmap']} />
 
                                                     {/* Live Terminal Streaming View */}
@@ -306,7 +306,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                             )}
 
                                             {msg.type === 'scan_result' && (
-                                                <div className="mt-4 w-full min-w-[320px]">
+                                                <div className="mt-4 w-[680px] max-w-[85vw]">
                                                     <ResultCard
                                                         scan={msg.data}
                                                         fixes={msg.fixes}
