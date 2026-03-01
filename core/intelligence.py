@@ -113,6 +113,10 @@ RULES:
     try:
         response_text = ask_kimi(message, system_prompt=system_prompt)
 
+        # Intercept string-based authentication/connection API errors from ask_kimi
+        if response_text.startswith("Error: OpenRouter API Key") or "AI Error" in response_text or "Connection Failed" in response_text:
+            return {"action": "chat", "message": f"API Error: {response_text}"}
+
         # Strip markdown code blocks if present
         clean = response_text.replace("```json", "").replace("```", "").strip()
         return json.loads(clean)

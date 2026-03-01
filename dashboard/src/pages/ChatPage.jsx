@@ -3,7 +3,7 @@ import ScanViz from '../components/ScanViz'
 import ResultCard from '../components/ResultCard'
 import AgentTerminal from '../components/AgentTerminal'
 import { Button } from "@/components/ui/button"
-import { fetchScan, fetchFixes, exportPdf, startScan } from '../api'
+import { fetchScan, fetchFixes, exportPdf, startScan, executeShell } from '../api'
 
 // TACTICAL LOADER
 function TacticalLoader() {
@@ -57,15 +57,6 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
         if (messages.length > prevMessagesLength.current || sending) {
             // Delay ensures the DOM has resized
             setTimeout(() => {
-                const lastMsg = messages[messages.length - 1];
-                if (lastMsg) {
-                    const msgEl = document.getElementById(`msg-${lastMsg.id}`);
-                    if (msgEl) {
-                        // Scroll the new message exactly to the top of the chat view
-                        msgEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        return;
-                    }
-                }
                 bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }, 50);
         }
@@ -183,6 +174,14 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                 } else {
                     setMessages(prev => [...prev, { role: 'ai', text: `[ERROR] Launch Failed: ${scanRes.detail}` }])
                 }
+            } else if (data.type === 'action_required' && data.action === 'execute_shell') {
+                setMessages(prev => [...prev, {
+                    id: Date.now(),
+                    role: 'ai',
+                    type: 'shell_request',
+                    command: data.command,
+                    text: data.message
+                }])
             } else {
                 setMessages(prev => [...prev, { role: 'ai', text: data.message || 'No response.' }])
             }
@@ -264,7 +263,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
             ) : (
                 <div className="flex-1 flex flex-col relative bg-surface overflow-hidden">
                     <div className="flex-1 overflow-y-auto">
-                        <div className="max-w-4xl mx-auto w-full p-8 pb-32 space-y-8">
+                        <div className="max-w-4xl mx-auto w-full p-8 pb-8 space-y-8">
                             {/* Messages Loop */}
                             {messages.map((msg, i) => {
                                 if (msg.role === 'ai' && msg.id === 'welcome') return null; // Hide welcome message in chat view
@@ -301,6 +300,41 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                                     {/* Live Terminal Streaming View */}
                                                     {msg.type === 'scan_running' && (
                                                         <AgentTerminal scanId={msg.scanId} />
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {msg.type === 'shell_request' && (
+                                                <div className="mt-2 text-sm bg-slate-900 border border-slate-700 text-slate-300 p-4 rounded-xl max-w-[680px] w-full font-mono flex flex-col gap-4 shadow-sm">
+                                                    <div className="flex items-start gap-3">
+                                                        <span className="material-symbols-outlined text-emerald-500 mt-0.5 text-lg">terminal</span>
+                                                        <div className="flex-1 break-all">
+                                                            <span className="text-slate-500 mr-2">$</span>
+                                                            <span className="text-emerald-400">{msg.command}</span>
+                                                        </div>
+                                                    </div>
+                                                    {!msg.output ? (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="default"
+                                                            className="self-start gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                                            onClick={async () => {
+                                                                try {
+                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: 'Executing...\n' } : m));
+                                                                    const res = await executeShell(msg.command);
+                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: res.output } : m));
+                                                                } catch (err) {
+                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Execution failed: ${err.message}` } : m));
+                                                                }
+                                                            }}
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                                                            Execute Command
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="bg-black/50 p-3 rounded-lg border border-slate-800 text-slate-400 whitespace-pre-wrap max-h-96 overflow-y-auto mt-2">
+                                                            {msg.output}
+                                                        </div>
                                                     )}
                                                 </div>
                                             )}

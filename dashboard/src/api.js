@@ -49,3 +49,12 @@ export async function removeScan(scanId) {
     const res = await fetch(`${API_BASE}/scan/${scanId}`, { method: 'DELETE' });
     return res.json();
 }
+
+export async function executeShell(command) {
+    const res = await fetch(`${API_BASE}/shell/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+    });
+    return res.json();
+}
