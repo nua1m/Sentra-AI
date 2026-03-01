@@ -38,6 +38,22 @@ def init_db():
             completed_at TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS scan_memory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            target TEXT NOT NULL,
+            scan_id TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            risk_score REAL,
+            risk_label TEXT,
+            tools_used TEXT,
+            open_ports TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_memory_target ON scan_memory(target)
+    """)
     # Migration for existing DB
     for col in ["scan_stage TEXT", "risk_score REAL", "risk_label TEXT"]:
         with contextlib.suppress(sqlite3.OperationalError):
