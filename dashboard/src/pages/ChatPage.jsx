@@ -417,44 +417,143 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                             {msg.type === 'setup_request' && (
                                                 <div className="mt-2 text-sm bg-slate-900 border border-emerald-500/30 p-4 rounded-xl max-w-[680px] w-full font-sans flex flex-col gap-4 shadow-sm">
                                                     <div className="flex items-start gap-3">
-                                                        <span className="material-symbols-outlined text-emerald-500 mt-0.5 text-lg">admin_panel_settings</span>
                                                         <div className="flex-1">
-                                                            <div className="text-slate-200 font-bold mb-1">Server Setup Authorization Required</div>
-                                                            <div className="text-slate-400 text-sm">Please provide temporary credentials for Sentra AI to configure the host: <span className="text-emerald-400 font-mono">{msg.target}</span></div>
+                                                            <div className="text-slate-200 font-bold mb-1">Connect to Server</div>
+                                                            <div className="text-slate-400 text-sm">Please provide SSH credentials for Sentra to securely connect and analyze: <span className="text-emerald-400 font-mono">{msg.target}</span></div>
                                                         </div>
                                                     </div>
 
-                                                    {!msg.output ? (
+                                                    {!msg.proposal && !msg.output ? (
                                                         <form className="flex flex-col gap-3 mt-2" onSubmit={async (e) => {
                                                             e.preventDefault();
                                                             const fd = new FormData(e.target);
+                                                            const targetIP = fd.get('target');
                                                             const username = fd.get('username');
                                                             const password = fd.get('password');
 
-                                                            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[DEVSEC_OPS] Initializing SSH terminal to ${msg.target} as ${username}...` } : m));
+                                                            setSending("Sentra: Connecting to server...");
 
                                                             try {
-                                                                await fetch('/api/setup/execute', {
+                                                                const res = await fetch('/api/copilot/audit', {
                                                                     method: 'POST',
                                                                     headers: { 'Content-Type': 'application/json' },
-                                                                    body: JSON.stringify({ target: msg.target, username, password })
+                                                                    body: JSON.stringify({ target: targetIP, username, password })
                                                                 });
+
+                                                                if (!res.ok) throw new Error(await res.text());
+                                                                const data = await res.json();
+
+                                                                // Attach credentials and the confirmed target to the proposal
+                                                                setMessages(prev => prev.map(m => m.id === msg.id ? {
+                                                                    ...m,
+                                                                    target: targetIP, // Update the message target to the user's input
+                                                                    proposal: data.proposal,
+                                                                    tempCreds: { username, password }
+                                                                } : m));
                                                             } catch (err) {
-                                                                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Setup Failed: ${err.message}` } : m));
+                                                                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Connection Failed: ${err.message}` } : m));
+                                                            } finally {
+                                                                setSending(false);
                                                             }
                                                         }}>
+                                                            <div className="flex flex-col gap-1">
+                                                                <label className="text-xs text-slate-400">Host / IP Address</label>
+                                                                <input name="target" required defaultValue={msg.target} placeholder="e.g. 192.168.1.5 or domain.com" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-emerald-400 font-mono text-sm outline-none focus:border-emerald-500 w-full" />
+                                                            </div>
                                                             <div className="grid grid-cols-2 gap-3">
-                                                                <input name="username" required placeholder="SSH Username (e.g. root)" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-slate-200 outline-none focus:border-emerald-500" />
-                                                                <input name="password" type="password" required placeholder="SSH Password" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-slate-200 outline-none focus:border-emerald-500" />
+                                                                <div className="flex flex-col gap-1">
+                                                                    <label className="text-xs text-slate-400">Username</label>
+                                                                    <input name="username" required placeholder="e.g. root" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-slate-200 outline-none focus:border-emerald-500" />
+                                                                </div>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <label className="text-xs text-slate-400">Password / Key Passphrase</label>
+                                                                    <input name="password" type="password" required placeholder="•••" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-slate-200 outline-none focus:border-emerald-500" />
+                                                                </div>
                                                             </div>
                                                             <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold self-start mt-2">
-                                                                <span className="material-symbols-outlined text-[16px] mr-2">vpn_key</span>
-                                                                Submit Credentials & Watch Setup
+                                                                <span className="material-symbols-outlined text-[16px] mr-2">login</span>
+                                                                Connect
                                                             </Button>
                                                         </form>
+                                                    ) : msg.proposal && !msg.output ? (
+                                                        <div className="mt-2 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-sm">
+                                                            <div className="text-emerald-400 font-bold mb-2">Audit Complete: {msg.target}</div>
+                                                            <div className="text-slate-300 mb-4">{msg.proposal.summary}</div>
+
+                                                            <div className="text-yellow-400 font-bold mb-1">Findings:</div>
+                                                            <ul className="list-disc pl-5 mb-4 text-slate-400 space-y-1">
+                                                                {msg.proposal.findings?.map((f, i) => <li key={i}>{f}</li>)}
+                                                            </ul>
+
+                                                            <div className="text-cyan-400 font-bold mb-1">Proposed Hardening Commands:</div>
+                                                            <div className="bg-black p-3 rounded text-slate-300 mb-4 whitespace-pre-wrap">
+                                                                {msg.proposal.proposed_commands?.join('\n')}
+                                                            </div>
+
+                                                            <Button
+                                                                size="sm"
+                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full"
+                                                                onClick={async () => {
+                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: 'Initializing execution stream...\n' } : m));
+
+                                                                    try {
+                                                                        const res = await fetch('/api/copilot/execute', {
+                                                                            method: 'POST',
+                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                            body: JSON.stringify({
+                                                                                target: msg.target,
+                                                                                username: msg.tempCreds.username,
+                                                                                password: msg.tempCreds.password,
+                                                                                commands: msg.proposal.proposed_commands
+                                                                            })
+                                                                        });
+
+                                                                        const reader = res.body.getReader();
+                                                                        const decoder = new TextDecoder();
+                                                                        let terminalText = '';
+
+                                                                        while (true) {
+                                                                            const { value, done } = await reader.read();
+                                                                            if (done) break;
+
+                                                                            const chunk = decoder.decode(value);
+                                                                            const events = chunk.split('\n\n').filter(Boolean);
+
+                                                                            for (const eventStr of events) {
+                                                                                const lines = eventStr.split('\n');
+                                                                                const typeLine = lines.find(l => l.startsWith('event:'));
+                                                                                const dataLine = lines.find(l => l.startsWith('data:'));
+
+                                                                                if (!typeLine || !dataLine) continue;
+
+                                                                                const type = typeLine.replace('event: ', '');
+                                                                                const dataStr = dataLine.replace('data: ', '');
+                                                                                const data = JSON.parse(dataStr);
+
+                                                                                if (type === 'terminal') {
+                                                                                    terminalText += data;
+                                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: terminalText } : m));
+                                                                                } else if (type === 'status') {
+                                                                                    terminalText += `\n[SENTRA] ${data}\n`;
+                                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: terminalText } : m));
+                                                                                } else if (type === 'error') {
+                                                                                    terminalText += `\n[ERROR] ${data}\n`;
+                                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: terminalText } : m));
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    } catch (err) {
+                                                                        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Execution Pipeline Failed: ${err.message}` } : m));
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <span className="material-symbols-outlined text-[16px] mr-2">check_circle</span>
+                                                                Approve & Execute Fixes
+                                                            </Button>
+                                                        </div>
                                                     ) : (
-                                                        <div className="mt-4">
-                                                            <AgentTerminal scanId={msg.target} />
+                                                        <div className="bg-black/50 p-3 rounded-lg border border-emerald-900 text-emerald-300 font-mono whitespace-pre-wrap max-h-96 overflow-y-auto mt-2">
+                                                            {msg.output}
                                                         </div>
                                                     )}
                                                 </div>
