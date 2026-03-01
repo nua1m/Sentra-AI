@@ -190,6 +190,14 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                     target: data.target,
                     text: data.message
                 }])
+            } else if (data.type === 'action_required' && data.action === 'setup_server') {
+                setMessages(prev => [...prev, {
+                    id: Date.now(),
+                    role: 'ai',
+                    type: 'setup_request',
+                    target: data.target,
+                    text: data.message
+                }])
             } else {
                 setMessages(prev => [...prev, { role: 'ai', text: data.message || 'No response.' }])
             }
@@ -380,6 +388,52 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                                     ) : (
                                                         <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50 text-purple-300 whitespace-pre-wrap max-h-96 mt-2 shadow-inner">
                                                             {msg.output}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {msg.type === 'setup_request' && (
+                                                <div className="mt-2 text-sm bg-slate-900 border border-emerald-500/30 p-4 rounded-xl max-w-[680px] w-full font-sans flex flex-col gap-4 shadow-sm">
+                                                    <div className="flex items-start gap-3">
+                                                        <span className="material-symbols-outlined text-emerald-500 mt-0.5 text-lg">admin_panel_settings</span>
+                                                        <div className="flex-1">
+                                                            <div className="text-slate-200 font-bold mb-1">Server Setup Authorization Required</div>
+                                                            <div className="text-slate-400 text-sm">Please provide temporary credentials for Sentra AI to configure the host: <span className="text-emerald-400 font-mono">{msg.target}</span></div>
+                                                        </div>
+                                                    </div>
+
+                                                    {!msg.output ? (
+                                                        <form className="flex flex-col gap-3 mt-2" onSubmit={async (e) => {
+                                                            e.preventDefault();
+                                                            const fd = new FormData(e.target);
+                                                            const username = fd.get('username');
+                                                            const password = fd.get('password');
+
+                                                            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[DEVSEC_OPS] Initializing SSH terminal to ${msg.target} as ${username}...` } : m));
+
+                                                            try {
+                                                                await fetch('/api/setup/execute', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ target: msg.target, username, password })
+                                                                });
+                                                            } catch (err) {
+                                                                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Setup Failed: ${err.message}` } : m));
+                                                            }
+                                                        }}>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <input name="username" required placeholder="SSH Username (e.g. root)" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-slate-200 outline-none focus:border-emerald-500" />
+                                                                <input name="password" type="password" required placeholder="SSH Password" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-slate-200 outline-none focus:border-emerald-500" />
+                                                            </div>
+                                                            <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold self-start mt-2">
+                                                                <span className="material-symbols-outlined text-[16px] mr-2">vpn_key</span>
+                                                                Submit Credentials & Watch Setup
+                                                            </Button>
+                                                        </form>
+                                                    ) : (
+                                                        <div className="mt-4">
+                                                            <AgentTerminal scanId={msg.target} />
                                                         </div>
                                                     )}
                                                 </div>
