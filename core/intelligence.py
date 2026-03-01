@@ -92,14 +92,15 @@ def process_chat_query(message: str) -> dict:
 
     # 2. Unified AI Call for everything else
     system_prompt = """You are Sentra.AI, an expert cybersecurity assistant.
-The user will provide a message. Determine if they want to initiate a vulnerability scan on a specific target (IP or domain), OR if they are asking a security-related question/chatting.
+The user will provide a message. Determine if they want to initiate a vulnerability scan on a specific target (IP or domain), run a shell command, OR if they are asking a security-related question/chatting.
 
 RULES:
 1. You MUST respond ONLY with a raw JSON object. Do NOT wrap it in ```json blocks. No conversational filler.
 2. If the user wants to scan a target, output:
 {"action": "scan", "target": "<ip_or_domain>"}
-
-3. If the user is just asking a question (e.g. "What is Nmap?", "hello"), output a helpful, detailed response:
+3. If the user wants to run a specific command (e.g. "ping google.com", "nslookup example.com"), output:
+{"action": "shell", "command": "<the full shell command>"}
+4. If the user is just asking a question (e.g. "What is Nmap?", "hello"), output a helpful, detailed response:
 {"action": "chat", "message": "<your response>"}
 """
 
