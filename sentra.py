@@ -72,7 +72,7 @@ def main_loop():
     # Connection Check
     if not check_backend():
         console.print("[error]❌ Cannot connect to Backend.[/error]")
-        console.print("Please run: [bold]uvicorn core.main:app --reload[/bold]")
+        console.print("Please run: [bold]uvicorn core.app:app --reload[/bold]")
         return
 
     console.print("[success]✔ Uplink Established.[/success]\n")
