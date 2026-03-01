@@ -6,26 +6,14 @@ import { Button } from "@/components/ui/button"
 import { fetchScan, fetchFixes, exportPdf, startScan, executeShell } from '../api'
 
 // TACTICAL LOADER
-function TacticalLoader() {
-    const [text, setText] = useState('Establishing Uplink...')
-    useEffect(() => {
-        const steps = [
-            'Analyzing Request...',
-            'Connecting to Target...',
-            'Initializing Security Suite...',
-            'Processing...'
-        ]
-        let i = 0
-        const interval = setInterval(() => { setText(steps[i++ % steps.length]) }, 800)
-        return () => clearInterval(interval)
-    }, [])
+function TacticalLoader({ text = "Processing..." }) {
     return (
         <div className="flex gap-4 mb-8">
-            <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-primary dark:text-white border border-border-light shrink-0">
+            <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-emerald-500 shrink-0 shadow-sm">
                 <span className="material-symbols-outlined text-lg">smart_toy</span>
             </div>
-            <div className="bg-surface border border-border-light rounded-2xl p-5 shadow-sm max-w-2xl w-full flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary dark:text-white animate-spin" style={{ animationDuration: '3s' }}>sync</span>
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm max-w-[680px] w-full flex items-center gap-3">
+                <span className="material-symbols-outlined text-emerald-500 animate-spin" style={{ animationDuration: '3s' }}>sync</span>
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{text}</span>
             </div>
         </div>
@@ -143,7 +131,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
 
         setInput('')
         setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: msg }])
-        setSending(true)
+        setSending("Processing...")
 
         try {
             // Find the most recent completed scan for context
@@ -156,50 +144,83 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             })
-            const data = await res.json()
 
-            if (data.type === 'action_required' && data.action === 'start_scan') {
-                const scanRes = await startScan(data.target, data.requested_tools)
-                if (scanRes.scan_id) {
-                    onScanStarted?.(scanRes.scan_id)
-                    setMessages(prev => [...prev, {
-                        id: scanRes.scan_id,
-                        role: 'ai',
-                        type: 'scan_running',
-                        scanId: scanRes.scan_id,
-                        stage: 'nmap_running',
-                        target: data.target,
-                        toolsUsed: data.requested_tools || ['nmap']
-                    }])
-                } else {
-                    setMessages(prev => [...prev, { role: 'ai', text: `[ERROR] Launch Failed: ${scanRes.detail}` }])
+            if (!res.body) throw new Error("ReadableStream not supported in this browser.")
+
+            const reader = res.body.getReader()
+            const decoder = new TextDecoder('utf-8')
+            let done = false
+            let partialBuffer = ''
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read()
+                done = doneReading
+                if (value) {
+                    partialBuffer += decoder.decode(value, { stream: true })
+
+                    const chunks = partialBuffer.split('\n\n')
+                    partialBuffer = chunks.pop() || '' // Keep the incomplete chunk
+
+                    for (const chunk of chunks) {
+                        const eventMatch = chunk.match(/event:\s*(.*)/)
+                        const dataMatch = chunk.match(/data:\s*(.*)/)
+
+                        if (eventMatch && dataMatch) {
+                            const eventType = eventMatch[1].trim()
+                            const dataPayload = JSON.parse(dataMatch[1].trim())
+
+                            if (eventType === 'status') {
+                                setSending(dataPayload) // Updates the dynamic TacticalLoader!
+                            } else if (eventType === 'result') {
+                                const data = dataPayload
+
+                                if (data.type === 'action_required' && data.action === 'start_scan') {
+                                    const scanRes = await startScan(data.target, data.requested_tools)
+                                    if (scanRes.scan_id) {
+                                        onScanStarted?.(scanRes.scan_id)
+                                        setMessages(prev => [...prev, {
+                                            id: scanRes.scan_id,
+                                            role: 'ai',
+                                            type: 'scan_running',
+                                            scanId: scanRes.scan_id,
+                                            stage: 'nmap_running',
+                                            target: data.target,
+                                            toolsUsed: data.requested_tools || ['nmap']
+                                        }])
+                                    } else {
+                                        setMessages(prev => [...prev, { role: 'ai', text: `[ERROR] Launch Failed: ${scanRes.detail}` }])
+                                    }
+                                } else if (data.type === 'action_required' && data.action === 'execute_shell') {
+                                    setMessages(prev => [...prev, {
+                                        id: Date.now(),
+                                        role: 'ai',
+                                        type: 'shell_request',
+                                        command: data.command,
+                                        text: data.message
+                                    }])
+                                } else if (data.type === 'action_required' && data.action === 'execute_attack') {
+                                    setMessages(prev => [...prev, {
+                                        id: Date.now(),
+                                        role: 'ai',
+                                        type: 'attack_request',
+                                        target: data.target,
+                                        text: data.message
+                                    }])
+                                } else if (data.type === 'action_required' && data.action === 'setup_server') {
+                                    setMessages(prev => [...prev, {
+                                        id: Date.now(),
+                                        role: 'ai',
+                                        type: 'setup_request',
+                                        target: data.target,
+                                        text: data.message
+                                    }])
+                                } else {
+                                    setMessages(prev => [...prev, { role: 'ai', text: data.message || 'No response.' }])
+                                }
+                            }
+                        }
+                    }
                 }
-            } else if (data.type === 'action_required' && data.action === 'execute_shell') {
-                setMessages(prev => [...prev, {
-                    id: Date.now(),
-                    role: 'ai',
-                    type: 'shell_request',
-                    command: data.command,
-                    text: data.message
-                }])
-            } else if (data.type === 'action_required' && data.action === 'execute_attack') {
-                setMessages(prev => [...prev, {
-                    id: Date.now(),
-                    role: 'ai',
-                    type: 'attack_request',
-                    target: data.target,
-                    text: data.message
-                }])
-            } else if (data.type === 'action_required' && data.action === 'setup_server') {
-                setMessages(prev => [...prev, {
-                    id: Date.now(),
-                    role: 'ai',
-                    type: 'setup_request',
-                    target: data.target,
-                    text: data.message
-                }])
-            } else {
-                setMessages(prev => [...prev, { role: 'ai', text: data.message || 'No response.' }])
             }
         } catch (err) {
             setMessages(prev => [...prev, { role: 'ai', text: `[CRITICAL] Connection Lost: ${err.message}` }])
@@ -453,7 +474,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                 )
                             })}
 
-                            {sending && <TacticalLoader />}
+                            {sending && <TacticalLoader text={typeof sending === 'string' ? sending : 'Processing...'} />}
                         </div>
                         <div ref={bottomRef} />
                     </div>

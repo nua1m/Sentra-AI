@@ -1,5 +1,7 @@
 # Sentra.AI — Intelligent Security Assessment Agent
 
+> ⚠️ **NOTICE:** Sentra.AI is currently a **Work In Progress**. Features, UI, and APIs are subject to change continuously.
+
 An AI-powered security assessment engine that autonomously selects and executes security tools based on target reconnaissance. Unlike static scanners, Sentra uses an intelligent agent pipeline: it runs Nmap first, then asks AI which follow-up tools are relevant, executes them dynamically, and generates remediation playbooks.
 
 ## ✨ Key Features

@@ -3,6 +3,8 @@ import logging
 import os
 import re
 import requests
+import httpx
+from typing import AsyncGenerator
 from dotenv import load_dotenv
 
 from .database import get_settings
@@ -113,6 +115,128 @@ If they specify tools, include them: {"action": "scan", "target": "<target>", "t
         logger.error(f"Failed to parse Unified AI Response: {e}")
         # Fallback if AI fails to return valid JSON
         return {"action": "chat", "message": "I processed that, but encountered a formatting error on my end. Could you rephrase?"}
+
+
+async def ask_kimi_stream(prompt: str, system_prompt: str = "You are Sentra.AI, a cybersecurity expert.") -> AsyncGenerator[str, None]:
+    """
+    Asynchronous streaming call to OpenRouter. Yields tokens.
+    """
+    settings = get_settings()
+    api_key = settings.get("openrouter_api_key") or os.getenv("OPENROUTER_API_KEY")
+
+    if not api_key or "your-key-here" in api_key:
+        yield "Error: OpenRouter API Key is missing. Please configure it in the UI Settings."
+        return
+
+    model = settings.get("ai_model", "moonshotai/kimi-k2.5")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "X-Title": "Sentra.AI CLI"
+    }
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.3, # Low temp for factual security reporting
+        "stream": True
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            async with client.stream("POST", OPENROUTER_URL, headers=headers, json=payload, timeout=60) as response:
+                if response.status_code != 200:
+                    text_error = await response.aread()
+                    yield f"AI Error ({response.status_code}): {text_error.decode('utf-8')}"
+                    return
+                
+                async for chunk in response.aiter_lines():
+                    if chunk.startswith("data: "):
+                        data_str = chunk[6:]
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            data = json.loads(data_str)
+                            if "choices" in data and len(data["choices"]) > 0:
+                                delta = data["choices"][0].get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    yield content
+                        except Exception:
+                            pass
+    except Exception as e:
+        yield f"Connection Failed: {e}"
+
+
+async def stream_chat_intent(message: str) -> AsyncGenerator[dict, None]:
+    """
+    Reads tokens from the LLM, infers the action dynamically mid-stream,
+    yields intermediate status events, and finally yields the parsed JSON.
+    """
+    system_prompt = """You are Sentra.AI, an expert cybersecurity assistant.
+The user will provide a message. Determine if they want to initiate a vulnerability scan on a specific target (IP or domain), run a shell command, provision/setup a server, attack a server, OR if they are asking a security-related question/chatting.
+
+RULES:
+1. You MUST respond ONLY with a raw JSON object. Do NOT wrap it in ```json blocks. No conversational filler.
+2. If the user wants to initiate a vulnerability scan (e.g. nmap, nikto, dirb) on a target (or implied target), output:
+{"action": "scan", "target": "<ip_or_domain_or_localhost>"} 
+If they specify tools, include them: {"action": "scan", "target": "<target>", "tools": ["nmap", ...]}
+3. If the user wants to run an arbitrary shell command (EXCEPT vulnerability scanners - use rule 2 for that), output:
+{"action": "shell", "command": "<the full shell command>"}
+4. If the user explicitly asks to ATTACK, PEN-TEST, BRUTE FORCE, or PURPLE TEAM a target, output:
+{"action": "attack", "target": "<ip_or_domain_or_localhost>"}
+5. If the user asks to SETUP, PROVISION, HARDEN, or CONNECT TO a server/host, output:
+{"action": "setup", "target": "<ip_or_domain_or_localhost_if_provided>"}
+6. If the user is just asking a question (e.g. "What is Nmap?", "hello"), output a helpful, detailed response:
+{"action": "chat", "message": "<your response>"}
+"""
+    
+    buffer = ""
+    action_sent = False
+    
+    async for token in ask_kimi_stream(message, system_prompt=system_prompt):
+        # Pass up API errors immediately if they occur
+        if "Error:" in token or "Connection Failed:" in token or "AI Error" in token:
+            yield {"type": "final_intent", "data": {"action": "chat", "message": token}}
+            return
+            
+        buffer += token
+        
+        # Try to excitedly deduce the action mid-stream to update the UI Loader!
+        if not action_sent:
+            action_match = re.search(r'"action"\s*:\s*"([^"]+)"', buffer)
+            if action_match:
+                action = action_match.group(1)
+                
+                # Yield the exact loader text we want to show based on the AI's internal thought process!
+                if action == "chat":
+                    yield {"type": "status", "data": "Generating Answer..."}
+                elif action == "shell":
+                    yield {"type": "status", "data": "Writing Command..."}
+                elif action == "scan":
+                    yield {"type": "status", "data": "Preparing Scan Engine..."}
+                elif action == "setup":
+                    yield {"type": "status", "data": "Initializing Provisioning Agent..."}
+                elif action == "attack":
+                    yield {"type": "status", "data": "Verifying Purple Team Auth..."}
+                else:
+                    yield {"type": "status", "data": f"Processing {action} request..."}
+                    
+                action_sent = True
+                
+    # Once the stream is entirely complete, parse the final JSON buffer
+    try:
+        clean = buffer.replace("```json", "").replace("```", "").strip()
+        final_json = json.loads(clean)
+        yield {"type": "final_intent", "data": final_json}
+    except Exception as e:
+        logger.error(f"Failed to parse Streaming Unified AI Response: {e} | Buffer: {buffer}")
+        yield {"type": "final_intent", "data": {"action": "chat", "message": "I processed that, but encountered a formatting error on my end. Could you rephrase?"}}
+
 
 
 # ═══════════════════════════════════════════════════════════════
