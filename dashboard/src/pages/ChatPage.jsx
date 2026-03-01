@@ -263,7 +263,7 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
             ) : (
                 <div className="flex-1 flex flex-col relative bg-surface overflow-hidden">
                     <div className="flex-1 overflow-y-auto">
-                        <div className="max-w-4xl mx-auto w-full p-8 pb-8 space-y-8">
+                        <div className="max-w-4xl mx-auto w-full p-8 pb-4 space-y-8">
                             {/* Messages Loop */}
                             {messages.map((msg, i) => {
                                 if (msg.role === 'ai' && msg.id === 'welcome') return null; // Hide welcome message in chat view
@@ -354,9 +354,8 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                             })}
 
                             {sending && <TacticalLoader />}
-
-                            <div ref={bottomRef} className="h-4" />
                         </div>
+                        <div ref={bottomRef} />
                     </div>
 
                     {/* Input Bar pinned to bottom */}

@@ -85,14 +85,14 @@ def process_chat_query(message: str) -> dict:
     tool_names = ["nmap", "nikto", "sslscan", "gobuster"]
     tool_pattern = "|".join(tool_names)
     tool_match = re.search(
-        rf"^(?:run|execute|use|start)?\s*({tool_pattern})\s+(?:on\s+|against\s+)?([a-zA-Z0-9.-]+)$",
+        rf"^(?:can\s+you\s+|could\s+you\s+|can\s+u\s+|please\s+)?(?:run|execute|use|start)?\s*({tool_pattern})\s+(?:on\s+|against\s+)?([a-zA-Z0-9.-]+)$",
         message.strip(), re.IGNORECASE
     )
     if tool_match:
         return {"action": "scan", "target": tool_match.group(2), "tools": [tool_match.group(1).lower()]}
 
     # 2. General scan request (e.g. "scan localhost", "check example.com")
-    scan_match = re.search(r"^(?:scan|check|test|analyze)\s+([a-zA-Z0-9.-]+)$", message.strip(), re.IGNORECASE)
+    scan_match = re.search(r"^(?:can\s+you\s+|could\s+you\s+|can\s+u\s+|please\s+)?(?:scan|check|test|analyze)\s+([a-zA-Z0-9.-]+)$", message.strip(), re.IGNORECASE)
     if scan_match:
         return {"action": "scan", "target": scan_match.group(1)}
 
@@ -102,9 +102,9 @@ The user will provide a message. Determine if they want to initiate a vulnerabil
 
 RULES:
 1. You MUST respond ONLY with a raw JSON object. Do NOT wrap it in ```json blocks. No conversational filler.
-2. If the user wants to scan a target, output:
+2. If the user wants to initiate a vulnerability scan (e.g. nmap, nikto, dirb) on a target, output:
 {"action": "scan", "target": "<ip_or_domain>"}
-3. If the user wants to run a specific command (e.g. "ping google.com", "nslookup example.com"), output:
+3. If the user wants to run a shell command (EXCEPT vulnerability scanners - use rule 2 for that), output:
 {"action": "shell", "command": "<the full shell command>"}
 4. If the user is just asking a question (e.g. "What is Nmap?", "hello"), output a helpful, detailed response:
 {"action": "chat", "message": "<your response>"}
