@@ -2,27 +2,33 @@ import json
 import logging
 import os
 import re
-
 import requests
 from dotenv import load_dotenv
+
+from .database import get_settings
 
 load_dotenv()
 logger = logging.getLogger("sentra.intelligence")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "moonshotai/kimi-k2.5"
 
 def ask_kimi(prompt: str, system_prompt: str = "You are Sentra.AI, a cybersecurity expert.") -> str:
     """
-    Synchronous call to OpenRouter (Kimi k2.5).
+    Synchronous call to OpenRouter.
     """
-    # Reload env to pick up changes without restart
-    load_dotenv(override=True)
-    api_key = os.getenv("OPENROUTER_API_KEY")
+    # Fetch API Key and Model dynamically from DB
+    settings = get_settings()
+    api_key = settings.get("openrouter_api_key")
+    
+    # Fallback to env file if db setting is empty
+    if not api_key:
+        api_key = os.getenv("OPENROUTER_API_KEY")
 
     if not api_key or "your-key-here" in api_key:
         logger.error(f"API Key Invalid. Value: {api_key}")
-        return "Error: OpenRouter API Key is missing or default. Check .env."
+        return "Error: OpenRouter API Key is missing. Please configure it in the UI Settings."
+
+    model = settings.get("ai_model", "moonshotai/kimi-k2.5")
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -31,7 +37,7 @@ def ask_kimi(prompt: str, system_prompt: str = "You are Sentra.AI, a cybersecuri
     }
 
     payload = {
-        "model": MODEL,
+        "model": model,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}

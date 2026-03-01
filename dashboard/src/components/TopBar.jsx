@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from './theme-provider'
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import SettingsModal from './SettingsModal'
 
 function PipelineNode({ label, state }) {
     if (state === 'done') {
@@ -102,6 +103,9 @@ export default function TopBar({ scanStage, activeScanId, scans }) {
                         <span className="material-symbols-outlined text-[16px]">dark_mode</span>
                     </ToggleGroupItem>
                 </ToggleGroup>
+
+                <SettingsModal />
+
                 <div className="h-6 w-px bg-border-light"></div>
                 <div className="flex items-center gap-3 cursor-pointer group">
                     <div className="text-right">

@@ -54,6 +54,19 @@ def init_db():
     conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_memory_target ON scan_memory(target)
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            openrouter_api_key TEXT,
+            ai_model TEXT
+        )
+    """)
+    # Insert default settings row if it doesn't exist
+    conn.execute("""
+        INSERT OR IGNORE INTO settings (id, openrouter_api_key, ai_model)
+        VALUES (1, '', 'moonshotai/kimi-k2.5')
+    """)
+    
     # Migration for existing DB
     for col in ["scan_stage TEXT", "risk_score REAL", "risk_label TEXT"]:
         with contextlib.suppress(sqlite3.OperationalError):
@@ -149,6 +162,26 @@ def _row_to_dict(row) -> dict:
         except (json.JSONDecodeError, TypeError):
             d["fixes"] = None
     return d
+
+
+def get_settings() -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
+    conn.close()
+    if not row:
+        return {"openrouter_api_key": "", "ai_model": "moonshotai/kimi-k2.5"}
+    return dict(row)
+
+
+def update_settings(api_key: str, model: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        "UPDATE settings SET openrouter_api_key = ?, ai_model = ? WHERE id = 1",
+        (api_key, model)
+    )
+    conn.commit()
+    conn.close()
 
 
 # Auto-init on import
