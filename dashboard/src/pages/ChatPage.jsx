@@ -182,6 +182,14 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                     command: data.command,
                     text: data.message
                 }])
+            } else if (data.type === 'action_required' && data.action === 'execute_attack') {
+                setMessages(prev => [...prev, {
+                    id: Date.now(),
+                    role: 'ai',
+                    type: 'attack_request',
+                    target: data.target,
+                    text: data.message
+                }])
             } else {
                 setMessages(prev => [...prev, { role: 'ai', text: data.message || 'No response.' }])
             }
@@ -333,6 +341,44 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                                         </Button>
                                                     ) : (
                                                         <div className="bg-black/50 p-3 rounded-lg border border-slate-800 text-slate-400 whitespace-pre-wrap max-h-96 overflow-y-auto mt-2">
+                                                            {msg.output}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {msg.type === 'attack_request' && (
+                                                <div className="mt-2 text-sm bg-purple-950/30 border border-purple-800/50 text-slate-300 p-4 rounded-xl max-w-[680px] w-full font-mono flex flex-col gap-4 shadow-sm">
+                                                    <div className="flex items-start gap-3">
+                                                        <span className="material-symbols-outlined text-purple-500 mt-0.5 text-lg">public</span>
+                                                        <div className="flex-1 break-all">
+                                                            <span className="text-slate-400 text-sm">Target: </span>
+                                                            <span className="text-purple-400 font-bold">{msg.target}</span>
+                                                        </div>
+                                                    </div>
+                                                    {!msg.output ? (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            className="self-start gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                                                            onClick={async () => {
+                                                                try {
+                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[PURPLE TEAM] Attack sequence initiated on ${msg.target}. Monitoring background progress...` } : m));
+                                                                    await fetch('/api/attack/execute', {
+                                                                        method: 'POST',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({ target: msg.target })
+                                                                    });
+                                                                } catch (err) {
+                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Purple Team Failed: ${err.message}` } : m));
+                                                                }
+                                                            }}
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px]">swords</span>
+                                                            AUTHORIZE PURPLE TEAM
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50 text-purple-300 whitespace-pre-wrap max-h-96 mt-2 shadow-inner">
                                                             {msg.output}
                                                         </div>
                                                     )}

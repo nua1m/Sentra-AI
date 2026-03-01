@@ -4,3 +4,8 @@ python-dotenv
 requests
 rich
 fpdf2
+openrouter
+gunicorn
+
+# SSH DevOps
+paramiko

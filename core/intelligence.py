@@ -96,7 +96,12 @@ def process_chat_query(message: str) -> dict:
     if scan_match:
         return {"action": "scan", "target": scan_match.group(1)}
 
-    # 2. Unified AI Call for everything else
+    # 3. Attack/Purple Team request
+    attack_match = re.search(r"^(?:can\s+you\s+|could\s+you\s+|can\s+u\s+|please\s+)?(?:attack|hack|exploit|purple\s+team)\s+([a-zA-Z0-9.-]+)$", message.strip(), re.IGNORECASE)
+    if attack_match:
+        return {"action": "attack", "target": attack_match.group(1)}
+
+    # 4. Unified AI Call for everything else
     system_prompt = """You are Sentra.AI, an expert cybersecurity assistant.
 The user will provide a message. Determine if they want to initiate a vulnerability scan on a specific target (IP or domain), run a shell command, OR if they are asking a security-related question/chatting.
 
@@ -106,7 +111,9 @@ RULES:
 {"action": "scan", "target": "<ip_or_domain>"}
 3. If the user wants to run a shell command (EXCEPT vulnerability scanners - use rule 2 for that), output:
 {"action": "shell", "command": "<the full shell command>"}
-4. If the user is just asking a question (e.g. "What is Nmap?", "hello"), output a helpful, detailed response:
+4. If the user explicitly asks to ATTACK, PEN-TEST, or PURPLE TEAM a target, output:
+{"action": "attack", "target": "<ip_or_domain>"}
+5. If the user is just asking a question (e.g. "What is Nmap?", "hello"), output a helpful, detailed response:
 {"action": "chat", "message": "<your response>"}
 """
 
