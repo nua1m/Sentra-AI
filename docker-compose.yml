@@ -1,0 +1,19 @@
+services:
+  agent0:
+    image: agent0ai/agent-zero
+    container_name: sentra-ai
+    ports:
+      - "50001:80"
+    volumes:
+      - ./prompts:/a0/prompts       # Sentra-AI system prompts
+      - sentra_data:/a0/usr         # persistent agent memory & uploads
+    restart: unless-stopped
+    environment:
+      # Set your OpenRouter API key here before running.
+      # Copy .env.example to .env and fill in the value.
+      - A0_SET_agent__llm_settings__default__api_key=${OPENROUTER_API_KEY:-}
+      - A0_SET_agent__llm_settings__default__provider=openrouter
+      - A0_SET_auth__login_required=false
+
+volumes:
+  sentra_data:
