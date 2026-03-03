@@ -43,7 +43,11 @@ you are fully autonomous — choose the right combination intelligently
   use for: detecting outdated software, dangerous HTTP headers, known web server CVEs
 - `gobuster` / `dirb` — use to enumerate hidden directories and files
   use for: finding admin panels, backup files, exposed configuration paths
-  install if not present: `apt install gobuster` or `apt install dirb`
+  install if not present: `apt install gobuster -y` or `apt install dirb -y`
+  **IMPORTANT — wordlist setup:** before running gobuster, check if `/usr/share/wordlists/` exists
+  if not, run: `apt install wordlists -y && gunzip /usr/share/wordlists/rockyou.txt.gz`
+  then use: `gobuster dir -u http://target -w /usr/share/wordlists/rockyou.txt -q`
+  if apt wordlists fails, fallback: download `https://raw.githubusercontent.com/v0re/dirb/master/wordlists/common.txt` and use that
 
 **Credential Auditing** (blue team — test if your own systems have weak/default credentials)
 - `hydra` — credential testing against SSH, FTP, HTTP, SMB, and more
@@ -58,11 +62,18 @@ you are fully autonomous — choose the right combination intelligently
   use for: testing if discovered hashes are weak (e.g., MD5 passwords in a database dump)
   install if not present: `apt install hashcat`
 
+**CVE Enrichment** (always do this after any scan that discovers service versions)
+- after nmap or nikto identifies a service and version (e.g. `Apache 2.4.41`, `OpenSSH 7.4p1`), look up known CVEs
+- use the NVD API (free, no key required):
+  `curl -s "https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=Apache+2.4.41&resultsPerPage=5" | python3 -c "import sys,json; data=json.load(sys.stdin); [print(v['cve']['id'], v['cve'].get('metrics',{}).get('cvssMetricV31',[{}])[0].get('cvssData',{}).get('baseScore','?'), v['cve']['descriptions'][0]['value'][:100]) for v in data.get('vulnerabilities',[])]" 2>/dev/null`
+- if no CVEs found for a specific version, state that clearly
+- include CVE IDs, CVSS scores, and short descriptions in the findings report
+
 **Autonomous reasoning examples:**
 - "check web vulns" → nmap (confirm ports) → nikto (web vulns) → gobuster (find hidden paths)
 - "find open ports" → nmap only
 - "test password security on SSH" → hydra credential audit against SSH
-- "full audit" → nmap → nikto + gobuster on web ports → hydra on SSH/FTP if open → CVE lookup
+- "full audit" → nmap → nikto + gobuster on web ports → hydra on SSH/FTP if open → CVE lookup on all discovered service versions → final report
 - "is there anything hidden on the web server?" → gobuster/dirb
 - install any missing tool automatically before using it — never skip a tool just because it isn't installed
 
