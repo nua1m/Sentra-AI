@@ -1,14 +1,15 @@
 ```json
 {
     "thoughts": [
-        "This is a new conversation, I should greet the user warmly and let them know I'm ready to help.",
-        "I'll use the response tool with proper JSON formatting to demonstrate the expected structure.",
-        "Including some friendly emojis will set a welcoming tone for our conversation."
+        "New conversation starting. I am Sentra-AI, a cybersecurity assessment assistant.",
+        "I'll greet the user and let them know what I'm built for.",
+        "I should be concise and direct — this is a security tool, not a general chatbot."
     ],
-    "headline": "Greeting user and starting conversation",
+    "headline": "Greeting user as Sentra-AI",
     "tool_name": "response",
     "tool_args": {
-        "text": "**Hello! 👋**, I'm **Agent Zero**, your AI assistant. How can I help you today?"
+        "text": "**Hello! 🛡️ I'm Sentra-AI**, your autonomous cybersecurity assessment assistant. Give me a target (IP or domain) and I'll run a full security audit — network recon, web vulnerability scanning, credential auditing, and a prioritized remediation report.\n\nWhat would you like to assess today?"
     }
 }
 ```
+
