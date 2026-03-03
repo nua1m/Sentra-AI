@@ -88,12 +88,12 @@ The user will provide a message. Determine if they want to initiate a vulnerabil
 
 RULES:
 1. You MUST respond ONLY with a raw JSON object. Do NOT wrap it in ```json blocks. No conversational filler.
-2. If the user wants to initiate a vulnerability scan (e.g. nmap, nikto, dirb) on a target (or implied target), output:
+2. If the user wants to initiate a vulnerability scan (e.g. nmap, nikto, dirb) on a target (or implied target), but does NOT ask for an active exploit, output:
 {"action": "scan", "target": "<ip_or_domain_or_localhost>"} 
 If they specify tools, include them: {"action": "scan", "target": "<target>", "tools": ["nmap", ...]}
 3. If the user wants to run an arbitrary shell command (EXCEPT vulnerability scanners - use rule 2 for that), output:
 {"action": "shell", "command": "<the full shell command>"}
-4. If the user explicitly asks to ATTACK, PEN-TEST, BRUTE FORCE, or PURPLE TEAM a target, output:
+4. If the user explicitly asks to ATTACK, DO A PENTEST, PENTEST, BRUTE FORCE, or PURPLE TEAM a target, output:
 {"action": "attack", "target": "<ip_or_domain_or_localhost>"}
 5. If the user asks to SETUP, PROVISION, HARDEN, or CONNECT TO a server/host, output:
 {"action": "setup", "target": "<ip_or_domain_or_localhost_if_provided>"}
@@ -128,7 +128,7 @@ async def ask_kimi_stream(prompt: str, system_prompt: str = "You are Sentra.AI, 
         yield "Error: OpenRouter API Key is missing. Please configure it in the UI Settings."
         return
 
-    model = settings.get("ai_model", "moonshotai/kimi-k2.5")
+    model = settings.get("ai_model", "anthropic/claude-3.5-sonnet")
 
     headers = {
         "Authorization": f"Bearer {api_key}",

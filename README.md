@@ -57,19 +57,31 @@ npm install
 
 ## 🚀 Running
 
-Open **two terminals**:
+### Method A: Docker Compose (Recommended)
+This approach pre-installs all critical hacking tools (Nmap, Nikto, Playwright, etc.) into a cohesive containerized environment, ensuring the Agent runs flawlessly regardless of your host OS.
+```bash
+# Start the full stack (Frontend, Backend, and Agent Tools)
+docker-compose up --build
+```
+> Dashboard runs at `http://localhost:5173`
+> API runs at `http://localhost:8000`
+
+### Method B: Manual Python & Node Setup
+If you prefer running natively, open **two terminals**:
 
 **Terminal 1 — Backend API:**
 ```bash
+# Ensure Nmap and dependencies are installed natively on your OS!
+playwright install chromium
 # Activate your venv first!
-uvicorn core.main:app --reload
+uvicorn core.app:app --reload
 ```
 > API runs at `http://localhost:8000`
 
 **Terminal 2 — Web Dashboard:**
 ```bash
 cd dashboard
-npm run dev
+npm install && npm run dev
 ```
 > Dashboard at `http://localhost:5173`
 

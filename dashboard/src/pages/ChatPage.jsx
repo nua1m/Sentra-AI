@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import ScanViz from '../components/ScanViz'
 import ResultCard from '../components/ResultCard'
 import AgentTerminal from '../components/AgentTerminal'
+import AgentConsole from '../components/AgentConsole'
 import { Button } from "@/components/ui/button"
 import { fetchScan, fetchFixes, exportPdf, startScan, executeShell } from '../api'
 
@@ -134,6 +135,19 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
         setSending("Processing...")
 
         try {
+            // [!] AGENT ZERO INTEGRATION OVERRIDE
+            if (msg.startsWith("/agent0")) {
+                const query = msg.replace("/agent0", "").trim()
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    role: 'ai',
+                    type: 'agent0_stream',
+                    output: '*Initializing AgentZero Engine...*\n',
+                    text: `Running AgentZero Task: ${query}`
+                }])
+                return handleAgentZero(Date.now() + 1, query)
+            }
+
             // Find the most recent completed scan for context
             const lastScan = messages.slice().reverse().find(m => m.scanId && m.type === 'scan_result')
             const body = { message: msg }
@@ -174,22 +188,15 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                             } else if (eventType === 'result') {
                                 const data = dataPayload
 
-                                if (data.type === 'action_required' && data.action === 'start_scan') {
-                                    const scanRes = await startScan(data.target, data.requested_tools)
-                                    if (scanRes.scan_id) {
-                                        onScanStarted?.(scanRes.scan_id)
-                                        setMessages(prev => [...prev, {
-                                            id: scanRes.scan_id,
-                                            role: 'ai',
-                                            type: 'scan_running',
-                                            scanId: scanRes.scan_id,
-                                            stage: 'nmap_running',
-                                            target: data.target,
-                                            toolsUsed: data.requested_tools || ['nmap']
-                                        }])
-                                    } else {
-                                        setMessages(prev => [...prev, { role: 'ai', text: `[ERROR] Launch Failed: ${scanRes.detail}` }])
-                                    }
+                                if (data.type === 'scan_request') {
+                                    setMessages(prev => [...prev, {
+                                        id: Date.now(),
+                                        role: 'ai',
+                                        type: 'scan_request',
+                                        target: data.target,
+                                        requested_tools: data.requested_tools,
+                                        text: data.message
+                                    }])
                                 } else if (data.type === 'action_required' && data.action === 'execute_shell') {
                                     setMessages(prev => [...prev, {
                                         id: Date.now(),
@@ -206,13 +213,14 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                         target: data.target,
                                         text: data.message
                                     }])
-                                } else if (data.type === 'action_required' && data.action === 'setup_server') {
+                                } else if (data.type === 'setup_request') {
                                     setMessages(prev => [...prev, {
                                         id: Date.now(),
                                         role: 'ai',
                                         type: 'setup_request',
                                         target: data.target,
-                                        text: data.message
+                                        credentials: data.credentials,
+                                        text: "I am ready to connect and audit this target. Please authorize."
                                     }])
                                 } else {
                                     setMessages(prev => [...prev, { role: 'ai', text: data.message || 'No response.' }])
@@ -226,6 +234,224 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
             setMessages(prev => [...prev, { role: 'ai', text: `[CRITICAL] Connection Lost: ${err.message}` }])
         }
         setSending(false)
+    }
+
+    async function handleAgentZero(msgId, query) {
+        setSending(false)
+        let localOutput = '*Initializing AgentZero Engine...*\n';
+
+        try {
+            const res = await fetch('/api/agent0/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: query })
+            });
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let done = false;
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+                if (value) {
+                    const chunkText = decoder.decode(value, { stream: true });
+                    const events = chunkText.split('\n\n');
+                    for (const ev of events) {
+                        const dataMatch = ev.match(/data:\s*(.*)/);
+                        if (dataMatch) {
+                            try {
+                                const parsed = JSON.parse(dataMatch[1].trim());
+                                if (parsed.type === 'log' || parsed.type === 'error' || parsed.type === 'status') {
+                                    // Append newline for readability
+                                    localOutput += parsed.message + '\n';
+                                    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, output: localOutput } : m));
+                                }
+                            } catch (e) {
+                                // Ignore unparseable chunks
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            localOutput += `\n[CRITICAL ERROR] Failed to run AgentZero: ${err.message}`;
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, output: localOutput } : m));
+        }
+    }
+
+    async function handleReconTeam(msgId, target) {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, output: '' } : m));
+        try {
+            const res = await fetch('/api/recon/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target })
+            });
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let done = false;
+            let localOutput = '';
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+                if (value) {
+                    const chunkText = decoder.decode(value, { stream: true });
+                    const events = chunkText.split('\n\n');
+                    for (const ev of events) {
+                        if (ev.includes("event: complete")) {
+                            const lines = ev.split('\n');
+                            for (let line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.substring(6));
+                                        if (data.type === 'scan_result') {
+                                            setMessages(prev => [...prev, {
+                                                id: Date.now(),
+                                                role: 'ai',
+                                                type: 'scan_result',
+                                                data: data.data,
+                                                fixes: data.fixes,
+                                                scanId: data.scanId
+                                            }]);
+                                        }
+                                    } catch (e) { }
+                                }
+                            }
+                        } else if (ev.includes("event: terminal")) {
+                            const lines = ev.split('\n');
+                            for (let line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const parsed = JSON.parse(line.substring(6));
+                                        if (parsed.message) {
+                                            localOutput += parsed.message + '\n';
+                                        }
+                                    } catch (e) { }
+                                }
+                            }
+                            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, output: localOutput } : m));
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, output: localOutput + `\n\n[ERROR] Connection Lost: ${err.message}` } : m));
+        }
+    }
+
+    async function handleSetupTeam(msgId, target, credentials) {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, output: '' } : m));
+        try {
+            const body = { target };
+            // Simple credential parser: if user said "root / password", we send it. Otherwise setup_agent will ask.
+            if (credentials && credentials.includes('/')) {
+                const parts = credentials.split('/');
+                body.username = parts[0].trim();
+                body.password = parts[1].trim();
+            } else if (credentials) {
+                // assume it's just a password
+                body.password = credentials.trim();
+            }
+
+            const res = await fetch('/api/setup/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.body) throw new Error("ReadableStream not supported");
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let done = false;
+            let partialBuffer = '';
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+                if (value) {
+                    partialBuffer += decoder.decode(value, { stream: true });
+                    const chunks = partialBuffer.split('\n\n');
+                    partialBuffer = chunks.pop() || '';
+
+                    for (const chunk of chunks) {
+                        const eventMatch = chunk.match(/event:\s*(.*)/);
+                        const dataMatch = chunk.match(/data:\s*(.*)/);
+
+                        if (eventMatch && dataMatch) {
+                            const eventType = eventMatch[1].trim();
+                            const dataPayload = JSON.parse(dataMatch[1].trim());
+
+                            if (eventType === 'terminal') {
+                                const parsed = typeof dataPayload === 'string' ? JSON.parse(dataPayload) : dataPayload;
+                                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, output: (m.output || '') + parsed.message + '\n' } : m));
+                            } else if (eventType === 'done' || eventType === 'error') {
+                                setSending(false);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, output: `[CRITICAL ERROR] ${err.message}` } : m));
+        }
+    }
+
+    async function handlePurpleTeam(msgId, target) {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, redOutput: '', blueOutput: '' } : m));
+        try {
+            const res = await fetch('/api/attack/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target })
+            });
+
+            if (!res.body) throw new Error("ReadableStream not supported");
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let done = false;
+            let partialBuffer = '';
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+                if (value) {
+                    partialBuffer += decoder.decode(value, { stream: true });
+                    const chunks = partialBuffer.split('\n\n');
+                    partialBuffer = chunks.pop() || '';
+
+                    for (const chunk of chunks) {
+                        const eventMatch = chunk.match(/event:\s*(.*)/);
+                        const dataMatch = chunk.match(/data:\s*(.*)/);
+
+                        if (eventMatch && dataMatch) {
+                            const eventType = eventMatch[1].trim();
+                            const dataPayload = JSON.parse(dataMatch[1].trim());
+
+                            if (eventType === 'status') {
+                                setSending(dataPayload);
+                            } else if (eventType === 'terminal') {
+                                const parsed = typeof dataPayload === 'string' ? JSON.parse(dataPayload) : dataPayload;
+                                if (parsed.type === 'RED') {
+                                    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, redOutput: (m.redOutput || '') + parsed.message + '\n' } : m));
+                                } else if (parsed.type === 'BLUE') {
+                                    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, blueOutput: (m.blueOutput || '') + parsed.message + '\n' } : m));
+                                }
+                            } else if (eventType === 'done' || eventType === 'error') {
+                                setSending(false);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, redOutput: `[CRITICAL ERROR] ${err.message}` } : m));
+            setSending(false);
+        }
     }
 
     const isDashboardState = messages.length <= 1;
@@ -377,38 +603,73 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                             )}
 
                                             {msg.type === 'attack_request' && (
-                                                <div className="mt-2 text-sm bg-purple-950/30 border border-purple-800/50 text-slate-300 p-4 rounded-xl max-w-[680px] w-full font-mono flex flex-col gap-4 shadow-sm">
+                                                <div className="mt-2 text-sm bg-purple-950/30 border border-purple-800/50 text-slate-300 p-4 rounded-xl max-w-full w-full font-sans flex flex-col gap-4 shadow-sm">
                                                     <div className="flex items-start gap-3">
                                                         <span className="material-symbols-outlined text-purple-500 mt-0.5 text-lg">public</span>
                                                         <div className="flex-1 break-all">
+                                                            <div className="text-slate-200 font-bold mb-1">Target Assessment</div>
                                                             <span className="text-slate-400 text-sm">Target: </span>
                                                             <span className="text-purple-400 font-bold">{msg.target}</span>
                                                         </div>
                                                     </div>
-                                                    {!msg.output ? (
+                                                    {!msg.redOutput && !msg.blueOutput ? (
                                                         <Button
                                                             size="sm"
                                                             variant="destructive"
                                                             className="self-start gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold"
-                                                            onClick={async () => {
-                                                                try {
-                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[PURPLE TEAM] Attack sequence initiated on ${msg.target}. Monitoring background progress...` } : m));
-                                                                    await fetch('/api/attack/execute', {
-                                                                        method: 'POST',
-                                                                        headers: { 'Content-Type': 'application/json' },
-                                                                        body: JSON.stringify({ target: msg.target })
-                                                                    });
-                                                                } catch (err) {
-                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Purple Team Failed: ${err.message}` } : m));
-                                                                }
-                                                            }}
+                                                            onClick={() => handlePurpleTeam(msg.id, msg.target)}
                                                         >
                                                             <span className="material-symbols-outlined text-[16px]">swords</span>
                                                             AUTHORIZE PURPLE TEAM
                                                         </Button>
                                                     ) : (
-                                                        <div className="bg-black/50 p-3 rounded-lg border border-purple-900/50 text-purple-300 whitespace-pre-wrap max-h-96 mt-2 shadow-inner">
-                                                            {msg.output}
+                                                        <div className="grid grid-cols-2 gap-4 h-[550px] w-full mt-2">
+                                                            <AgentConsole
+                                                                agentType="RED"
+                                                                themeColor="red"
+                                                                icon="swords"
+                                                                status={msg.blueOutput ? "Terminated" : "Attacking"}
+                                                                output={msg.redOutput}
+                                                            />
+                                                            <AgentConsole
+                                                                agentType="BLUE"
+                                                                themeColor="blue"
+                                                                icon="security"
+                                                                status={!msg.redOutput ? "Awaiting Breach" : (msg.blueOutput ? "Remediating" : "Analyzing Log...")}
+                                                                output={msg.blueOutput}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {msg.type === 'scan_request' && (
+                                                <div className="mt-2 text-sm bg-slate-900 border border-blue-500/30 p-4 rounded-xl max-w-[680px] w-full font-sans flex flex-col gap-4 shadow-sm">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="flex-1">
+                                                            <div className="text-slate-200 font-bold mb-1">Agentic Reconnaissance</div>
+                                                            <div className="text-slate-400 text-sm">Deploying the Hybrid Recon Agent (Playwright + MCP) against: <span className="text-blue-400 font-mono">{msg.target}</span></div>
+                                                        </div>
+                                                    </div>
+
+                                                    {(msg.output === undefined) ? (
+                                                        <Button
+                                                            size="sm"
+                                                            className="self-start gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                                            onClick={() => handleReconTeam(msg.id, msg.target)}
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px]">radar</span>
+                                                            AUTHORIZE RECON AGENT
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="h-[400px] w-full mt-2">
+                                                            <AgentConsole
+                                                                agentType="RECON"
+                                                                themeColor="blue"
+                                                                icon="radar"
+                                                                status="Scanning"
+                                                                output={msg.output}
+                                                            />
                                                         </div>
                                                     )}
                                                 </div>
@@ -423,139 +684,46 @@ export default function ChatPage({ activeScanId, onScanStarted, onScanComplete }
                                                         </div>
                                                     </div>
 
-                                                    {!msg.proposal && !msg.output ? (
-                                                        <form className="flex flex-col gap-3 mt-2" onSubmit={async (e) => {
-                                                            e.preventDefault();
-                                                            const fd = new FormData(e.target);
-                                                            const targetIP = fd.get('target');
-                                                            const username = fd.get('username');
-                                                            const password = fd.get('password');
-
-                                                            setSending("Sentra: Connecting to server...");
-
-                                                            try {
-                                                                const res = await fetch('/api/copilot/audit', {
-                                                                    method: 'POST',
-                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                    body: JSON.stringify({ target: targetIP, username, password })
-                                                                });
-
-                                                                if (!res.ok) throw new Error(await res.text());
-                                                                const data = await res.json();
-
-                                                                // Attach credentials and the confirmed target to the proposal
-                                                                setMessages(prev => prev.map(m => m.id === msg.id ? {
-                                                                    ...m,
-                                                                    target: targetIP, // Update the message target to the user's input
-                                                                    proposal: data.proposal,
-                                                                    tempCreds: { username, password }
-                                                                } : m));
-                                                            } catch (err) {
-                                                                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Connection Failed: ${err.message}` } : m));
-                                                            } finally {
-                                                                setSending(false);
-                                                            }
-                                                        }}>
-                                                            <div className="flex flex-col gap-1">
-                                                                <label className="text-xs text-slate-400">Host / IP Address</label>
-                                                                <input name="target" required defaultValue={msg.target} placeholder="e.g. 192.168.1.5 or domain.com" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-emerald-400 font-mono text-sm outline-none focus:border-emerald-500 w-full" />
-                                                            </div>
-                                                            <div className="grid grid-cols-2 gap-3">
-                                                                <div className="flex flex-col gap-1">
-                                                                    <label className="text-xs text-slate-400">Username</label>
-                                                                    <input name="username" required placeholder="e.g. root" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-slate-200 outline-none focus:border-emerald-500" />
-                                                                </div>
-                                                                <div className="flex flex-col gap-1">
-                                                                    <label className="text-xs text-slate-400">Password / Key Passphrase</label>
-                                                                    <input name="password" type="password" required placeholder="•••" className="bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-slate-200 outline-none focus:border-emerald-500" />
-                                                                </div>
-                                                            </div>
-                                                            <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold self-start mt-2">
-                                                                <span className="material-symbols-outlined text-[16px] mr-2">login</span>
-                                                                Connect
-                                                            </Button>
-                                                        </form>
-                                                    ) : msg.proposal && !msg.output ? (
-                                                        <div className="mt-2 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-sm">
-                                                            <div className="text-emerald-400 font-bold mb-2">Audit Complete: {msg.target}</div>
-                                                            <div className="text-slate-300 mb-4">{msg.proposal.summary}</div>
-
-                                                            <div className="text-yellow-400 font-bold mb-1">Findings:</div>
-                                                            <ul className="list-disc pl-5 mb-4 text-slate-400 space-y-1">
-                                                                {msg.proposal.findings?.map((f, i) => <li key={i}>{f}</li>)}
-                                                            </ul>
-
-                                                            <div className="text-cyan-400 font-bold mb-1">Proposed Hardening Commands:</div>
-                                                            <div className="bg-black p-3 rounded text-slate-300 mb-4 whitespace-pre-wrap">
-                                                                {msg.proposal.proposed_commands?.join('\n')}
-                                                            </div>
-
-                                                            <Button
-                                                                size="sm"
-                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full"
-                                                                onClick={async () => {
-                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: 'Initializing execution stream...\n' } : m));
-
-                                                                    try {
-                                                                        const res = await fetch('/api/copilot/execute', {
-                                                                            method: 'POST',
-                                                                            headers: { 'Content-Type': 'application/json' },
-                                                                            body: JSON.stringify({
-                                                                                target: msg.target,
-                                                                                username: msg.tempCreds.username,
-                                                                                password: msg.tempCreds.password,
-                                                                                commands: msg.proposal.proposed_commands
-                                                                            })
-                                                                        });
-
-                                                                        const reader = res.body.getReader();
-                                                                        const decoder = new TextDecoder();
-                                                                        let terminalText = '';
-
-                                                                        while (true) {
-                                                                            const { value, done } = await reader.read();
-                                                                            if (done) break;
-
-                                                                            const chunk = decoder.decode(value);
-                                                                            const events = chunk.split('\n\n').filter(Boolean);
-
-                                                                            for (const eventStr of events) {
-                                                                                const lines = eventStr.split('\n');
-                                                                                const typeLine = lines.find(l => l.startsWith('event:'));
-                                                                                const dataLine = lines.find(l => l.startsWith('data:'));
-
-                                                                                if (!typeLine || !dataLine) continue;
-
-                                                                                const type = typeLine.replace('event: ', '');
-                                                                                const dataStr = dataLine.replace('data: ', '');
-                                                                                const data = JSON.parse(dataStr);
-
-                                                                                if (type === 'terminal') {
-                                                                                    terminalText += data;
-                                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: terminalText } : m));
-                                                                                } else if (type === 'status') {
-                                                                                    terminalText += `\n[SENTRA] ${data}\n`;
-                                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: terminalText } : m));
-                                                                                } else if (type === 'error') {
-                                                                                    terminalText += `\n[ERROR] ${data}\n`;
-                                                                                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: terminalText } : m));
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    } catch (err) {
-                                                                        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, output: `[ERROR] Execution Pipeline Failed: ${err.message}` } : m));
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <span className="material-symbols-outlined text-[16px] mr-2">check_circle</span>
-                                                                Approve & Execute Fixes
-                                                            </Button>
-                                                        </div>
+                                                    {(msg.output === undefined) ? (
+                                                        <Button
+                                                            size="sm"
+                                                            className="self-start gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                                            onClick={() => handleSetupTeam(msg.id, msg.target, msg.credentials)}
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+                                                            AUTHORIZE SETUP AGENT
+                                                        </Button>
                                                     ) : (
-                                                        <div className="bg-black/50 p-3 rounded-lg border border-emerald-900 text-emerald-300 font-mono whitespace-pre-wrap max-h-96 overflow-y-auto mt-2">
-                                                            {msg.output}
+                                                        <div className="h-[400px] w-full mt-2">
+                                                            <AgentConsole
+                                                                agentType="SETUP"
+                                                                themeColor="emerald"
+                                                                icon="cable"
+                                                                status="Analyzing"
+                                                                output={msg.output}
+                                                            />
                                                         </div>
                                                     )}
+                                                </div>
+                                            )}
+
+                                            {msg.type === 'agent0_stream' && (
+                                                <div className="mt-2 text-sm bg-slate-900 border border-emerald-500/50 p-4 rounded-xl max-w-[680px] w-full font-sans flex flex-col gap-4 shadow-sm">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="flex-1">
+                                                            <div className="text-slate-200 font-bold mb-1">AgentZero Native Engine</div>
+                                                            <div className="text-slate-400 text-sm">Running autonomous pipeline directly from the custom offensive security engine.</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-[400px] w-full mt-2">
+                                                        <AgentConsole
+                                                            agentType="AGENT0"
+                                                            themeColor="emerald"
+                                                            icon="smart_toy"
+                                                            status="Processing"
+                                                            output={msg.output}
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
 
