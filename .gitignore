@@ -38,5 +38,16 @@ usr/**
 # for browser-use
 agent_history.gif
 
-.agent/**
-.claude/**
+# --- SENTRA-AI CUSTOM RULES ---
+
+# Keep planning/design docs local (FYP brainstorms, SDLC plans)
+docs/planning/
+
+# Sentra-AI runtime secrets
+.env
+.env.local
+
+# NOTE: .agent/ is intentionally NOT listed here.
+# It is excluded via .git/info/exclude to keep it
+# accessible to AI tools (Cursor, Windsurf, etc)
+# without being tracked by git.
