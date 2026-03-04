@@ -1,6 +1,7 @@
 import json
 import re
 import uuid
+from typing import AsyncIterator
 
 import httpx
 
@@ -13,17 +14,13 @@ _RAW_JSON_RE = re.compile(r"(\{[^{}]*\"findings\"\s*:\s*\[.*?\].*?\})", re.DOTAL
 
 
 class Agent0Client:
-    """Thin async HTTP client for Agent0's REST API.
-
-    Uses one httpx.AsyncClient per instance — callers should reuse the same
-    instance (injected via FastAPI dependency) rather than creating many.
-    """
+    """Async HTTP client for Agent0's REST API."""
 
     def __init__(self) -> None:
         self._base = settings.agent0_internal_url.rstrip("/")
         self._headers = {"X-API-Key": settings.agent0_api_key}
 
-    async def _post_message(
+    async def send_message(
         self,
         text: str,
         context_id: str | None = None,
@@ -42,16 +39,40 @@ class Agent0Client:
             response.raise_for_status()
             return response.json()
 
-    async def run_scan(self, target: str, scan_type: str = "full") -> dict:
-        """Call 1 — send the scan request and get back the full report."""
-        prompt = (
-            f"Run a {'full security audit' if scan_type == 'full' else scan_type + ' scan'} "
-            f"on {target}. Provide the complete findings report."
-        )
-        return await self._post_message(prompt, timeout=settings.scan_timeout_seconds)
+    async def get_log(self, context_id: str, start: int = 0) -> dict:
+        """Fetch log items from Agent0 for a given context_id starting at offset."""
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(
+                    f"{self._base}/api_log_get",
+                    params={"context_id": context_id, "start": start},
+                    headers=self._headers,
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError:
+            return {"items": []}
+
+    async def stream_log(
+        self, context_id: str, poll_interval: float = 1.0
+    ) -> AsyncIterator[str]:
+        """Async generator that yields new log lines as they appear."""
+        import asyncio
+
+        seen = 0
+        while True:
+            data = await self.get_log(context_id, start=seen)
+            items = data.get("items", [])
+            for item in items:
+                # Each item may have 'content' or 'text' field
+                line = item.get("content") or item.get("text") or str(item)
+                if line:
+                    yield line
+            seen += len(items)
+            await asyncio.sleep(poll_interval)
 
     async def extract_json(self, context_id: str) -> dict | None:
-        """Call 2 — ask Agent0 to reformat previous findings as structured JSON."""
+        """Second call — ask Agent0 to reformat previous findings as pure JSON."""
         prompt = (
             "Based on your previous security findings report, output ONLY a valid JSON object "
             "using this exact schema — no markdown, no explanation, JSON only:\n"
@@ -61,30 +82,24 @@ class Agent0Client:
             '"cvss":9.8,"remediation":"..."}],"summary":"..."}'
         )
         try:
-            result = await self._post_message(
-                prompt,
-                context_id=context_id,
-                timeout=settings.json_extract_timeout,
+            result = await self.send_message(
+                prompt, context_id=context_id, timeout=settings.json_extract_timeout
             )
-            raw_text: str = result.get("text", "") or result.get("message", "")
+            raw: str = result.get("text", "") or result.get("message", "")
 
-            # Try fenced code block first
-            match = _JSON_BLOCK_RE.search(raw_text)
+            match = _JSON_BLOCK_RE.search(raw)
             if match:
                 return json.loads(match.group(1))
 
-            # Try bare JSON object
-            match = _RAW_JSON_RE.search(raw_text)
+            match = _RAW_JSON_RE.search(raw)
             if match:
                 return json.loads(match.group(1))
 
         except (httpx.HTTPError, json.JSONDecodeError, KeyError):
             pass
-
         return None
 
     async def check_health(self) -> bool:
-        """Ping Agent0 to verify connectivity."""
         try:
             async with httpx.AsyncClient(timeout=5) as client:
                 r = await client.get(f"{self._base}/", headers=self._headers)
@@ -94,5 +109,4 @@ class Agent0Client:
 
 
 def get_agent0_client() -> Agent0Client:
-    """FastAPI dependency — returns a shared client instance."""
     return Agent0Client()

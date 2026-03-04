@@ -4,14 +4,21 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-# ─── Request schemas ────────────────────────────────────────────────────────
+# ─── Request schemas ─────────────────────────────────────────────────────────
 
 class ScanRequest(BaseModel):
-    target: str = Field(..., min_length=1, max_length=255, description="IP address or domain to scan")
+    target: str = Field(..., min_length=1, max_length=255)
     scan_type: str = Field(default="full", pattern="^(full|quick|web|ports)$")
 
 
-# ─── Response schemas ───────────────────────────────────────────────────────
+# ─── Response schemas ─────────────────────────────────────────────────────────
+
+class ScanStarted(BaseModel):
+    """Returned immediately when a scan is accepted (202)."""
+    scan_id: uuid.UUID
+    status: str  # "pending"
+    stream_url: str  # e.g. /api/v1/scans/{id}/stream
+
 
 class FindingOut(BaseModel):
     id: uuid.UUID
@@ -41,7 +48,6 @@ class ScanOut(BaseModel):
 
 
 class ScanSummaryOut(BaseModel):
-    """Lightweight scan listing — no findings included."""
     id: uuid.UUID
     target: str
     status: str
