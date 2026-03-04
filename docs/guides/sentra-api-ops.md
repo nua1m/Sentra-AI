@@ -66,6 +66,8 @@ curl http://localhost:8000/api/v1/scans/<SCAN_ID> \
   -H "X-API-Key: <SENTRA_API_KEY>"
 ```
 
+If a scan fails, the response includes an `error` field in the scan detail payload.
+
 Stream logs:
 
 ```bash

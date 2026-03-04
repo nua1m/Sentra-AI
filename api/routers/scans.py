@@ -164,7 +164,11 @@ async def delete_scan(
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _to_scan_out(scan) -> ScanOut:
-    tools = json.loads(scan.tools_used) if scan.tools_used else []
+    try:
+        tools = json.loads(scan.tools_used) if scan.tools_used else []
+    except (TypeError, json.JSONDecodeError):
+        tools = []
+
     return ScanOut(
         id=scan.id,
         target=scan.target,
@@ -173,6 +177,7 @@ def _to_scan_out(scan) -> ScanOut:
         completed_at=scan.completed_at,
         tools_used=tools,
         summary=scan.summary,
+        error=scan.error,
         findings=[{
             "id": f.id,
             "severity": f.severity,

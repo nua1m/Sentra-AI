@@ -41,6 +41,7 @@ class ScanOut(BaseModel):
     completed_at: datetime | None
     tools_used: list[str] | None
     summary: str | None
+    error: str | None = None
     findings: list[FindingOut] = []
     created_at: datetime
 
