@@ -15,6 +15,7 @@ services:
       - A0_SET_agent__llm_settings__default__api_key=${OPENROUTER_API_KEY:-}
       - A0_SET_agent__llm_settings__default__provider=openrouter
       - A0_SET_auth__login_required=false
+      - A0_SET_auth__require_api_key=false
 
   api:
     build: ./api
