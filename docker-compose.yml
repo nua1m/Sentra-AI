@@ -3,19 +3,50 @@ services:
     build: .                            # build from our custom Dockerfile
     image: sentra-ai:latest             # tag the built image
     container_name: sentra-ai
-    ports:
-      - "50001:80"
+    ports: []                           # NOT exposed — internal only
+    networks:
+      - sentra_net
     volumes:
-      - ./prompts:/a0/prompts                                                   # Sentra-AI system prompts
-      - sentra_data:/a0/usr                                                     # persistent agent memory & uploads
-      - C:/Users/syahm/Desktop/FYP2/docs/rockyou.txt:/usr/share/wordlists/rockyou.txt:ro   # wordlist (read-only)
+      - ./prompts:/a0/prompts
+      - sentra_data:/a0/usr
+      - C:/Users/syahm/Desktop/FYP2/docs/rockyou.txt:/usr/share/wordlists/rockyou.txt:ro
     restart: unless-stopped
     environment:
-      # Set your OpenRouter API key here before running.
-      # Copy .env.example to .env and fill in the value.
       - A0_SET_agent__llm_settings__default__api_key=${OPENROUTER_API_KEY:-}
       - A0_SET_agent__llm_settings__default__provider=openrouter
       - A0_SET_auth__login_required=false
 
+  api:
+    build: ./api
+    container_name: sentra-api
+    ports:
+      - "8000:8000"
+    networks:
+      - sentra_net
+    depends_on:
+      - agent0
+      - postgres
+    env_file: .env
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sentra-postgres
+    networks:
+      - sentra_net
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-sentra}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-sentra_ai}
+    restart: unless-stopped
+    # NOT exposed to host — internal only
+
+networks:
+  sentra_net:
+    driver: bridge
+
 volumes:
   sentra_data:
+  pg_data:
