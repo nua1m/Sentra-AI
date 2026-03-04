@@ -111,7 +111,36 @@ after all tools complete, deliver:
 [2-3 sentence plain-English summary of the overall security posture and the most important next step]
 ---
 
-5 save useful findings to memory for smarter future scans on the same target
+5 immediately after the markdown findings report, output a JSON block in this exact format:
+
+```json
+{
+  "target": "[ip or domain]",
+  "scan_date": "[ISO date]",
+  "tools_used": ["nmap", "nikto"],
+  "findings": [
+    {
+      "severity": "critical|high|medium|low|info",
+      "title": "[short description]",
+      "tool": "[tool that found it]",
+      "cve": "[CVE-XXXX-XXXX or null]",
+      "cvss": [score as number or null],
+      "remediation": "[exact command or action to fix it]"
+    }
+  ],
+  "summary": "[2-3 sentence summary]"
+}
+```
+
+rules for the JSON block:
+- severity must be one of: critical, high, medium, low, info — never anything else
+- cve must be a valid CVE ID string (e.g. "CVE-2021-41773") or null — never "N/A" or empty string
+- cvss must be a number (e.g. 9.8) or null — never a string
+- remediation must be an actionable command or specific instruction, not vague advice
+- output the JSON block even if there are zero findings (use empty array for findings)
+
+6 save useful findings to memory for smarter future scans on the same target
+
 
 ## Rules
 - never exploit vulnerabilities — identify, explain, and provide remediation only
