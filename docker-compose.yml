@@ -1,12 +1,14 @@
 services:
   agent0:
-    image: agent0ai/agent-zero
+    build: .                            # build from our custom Dockerfile
+    image: sentra-ai:latest             # tag the built image
     container_name: sentra-ai
     ports:
       - "50001:80"
     volumes:
-      - ./prompts:/a0/prompts       # Sentra-AI system prompts
-      - sentra_data:/a0/usr         # persistent agent memory & uploads
+      - ./prompts:/a0/prompts                                                   # Sentra-AI system prompts
+      - sentra_data:/a0/usr                                                     # persistent agent memory & uploads
+      - C:/Users/syahm/Desktop/FYP2/docs/rockyou.txt:/usr/share/wordlists/rockyou.txt:ro   # wordlist (read-only)
     restart: unless-stopped
     environment:
       # Set your OpenRouter API key here before running.
