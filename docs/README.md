@@ -15,6 +15,7 @@ Welcome to the Agent Zero documentation hub. Whether you're getting started or d
 - **[Usage Guide](guides/usage.md):** Comprehensive guide to Agent Zero's features and capabilities.
 - **[Projects Tutorial](guides/projects.md):** Learn to create isolated workspaces with dedicated context and memory.
 - **[API Integration](guides/api-integration.md):** Add external APIs without writing code.
+- **[Sentra API Operations](guides/sentra-api-ops.md):** Run and validate the FastAPI scan service.
 - **[MCP Setup](guides/mcp-setup.md):** Configure Model Context Protocol servers.
 - **[A2A Setup](guides/a2a-setup.md):** Enable agent-to-agent communication.
 - **[Troubleshooting](guides/troubleshooting.md):** Solutions to common issues and FAQs.
@@ -88,6 +89,7 @@ Welcome to the Agent Zero documentation hub. Whether you're getting started or d
     - [Backup & Restore](guides/usage.md#backup--restore)
   - [Projects Tutorial](guides/projects.md)
   - [API Integration](guides/api-integration.md)
+  - [Sentra API Operations](guides/sentra-api-ops.md)
   - [MCP Setup](guides/mcp-setup.md)
   - [A2A Setup](guides/a2a-setup.md)
   - [Troubleshooting](guides/troubleshooting.md)
