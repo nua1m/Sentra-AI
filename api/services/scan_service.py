@@ -6,14 +6,49 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from api.core.config import get_settings
 from api.models.db import Finding, ScanSession
 from api.services.agent0_client import Agent0Client
 
 VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
+settings = get_settings()
+
+SCAN_STRATEGIES = {
+    "quick": "Run one quick host/service discovery pass only.",
+    "ports": "Focus on port exposure only.",
+    "web": "Focus on web-surface checks only.",
+    "full": "Run one comprehensive network security assessment pass.",
+}
 
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _scan_timeout(scan_type: str) -> int:
+    if scan_type in {"quick", "ports", "web"}:
+        return settings.quick_scan_timeout_seconds
+    return settings.scan_timeout_seconds
+
+
+async def fail_stale_running_scans(db: AsyncSession) -> int:
+    cutoff = _utcnow().timestamp() - settings.stale_scan_timeout_seconds
+    cutoff_dt = datetime.fromtimestamp(cutoff, tz=timezone.utc)
+    result = await db.execute(
+        select(ScanSession).where(
+            ScanSession.status == "running",
+            ScanSession.started_at < cutoff_dt,
+        )
+    )
+    stale = list(result.scalars().all())
+    for scan in stale:
+        scan.status = "failed"
+        scan.error = "Scan exceeded maximum runtime"
+        scan.completed_at = _utcnow()
+
+    if stale:
+        await db.commit()
+    return len(stale)
 
 
 async def create_pending_scan(db: AsyncSession, target: str, scan_type: str) -> ScanSession:
@@ -48,30 +83,43 @@ async def run_scan(
         scan.status = "running"
         await db.commit()
 
-        # ── Call 1: run the full audit ──────────────────────────────────
+        # ── Call 1: run the audit and return structured JSON ────────────
+        strategy = SCAN_STRATEGIES.get(scan_type, SCAN_STRATEGIES["full"])
         prompt = (
-            f"Run a {'full security audit' if scan_type == 'full' else scan_type + ' scan'} "
-            f"on {target}. Provide the complete findings report."
+            f"Target: {target}. Scan mode: {scan_type}. {strategy} "
+            "Use only the minimum required commands, avoid retries/loops, and finish in a single run. "
+            "Return ONLY one valid JSON object (no markdown, no extra text) with this schema: "
+            '{"target":"string","scan_date":"ISO-8601","tools_used":["string"],'
+            '"findings":[{"severity":"critical|high|medium|low|info","title":"string",'
+            '"tool":"string|null","cve":"CVE-XXXX-XXXX|null","cvss":0-10|null,'
+            '"remediation":"string|null"}],"summary":"string"}'
         )
-        result = await agent0.send_message(prompt, timeout=600)
+        result = await agent0.send_message(prompt, timeout=_scan_timeout(scan_type))
         context_id: str | None = result.get("context_id")
-        raw_report: str = result.get("text") or result.get("message") or ""
+        raw_report: str = (
+            result.get("text")
+            or result.get("message")
+            or result.get("response")
+            or ""
+        )
 
         # Persist context_id so SSE endpoint can stream logs
         scan.context_id = context_id
         await db.commit()
 
-        # ── Call 2: extract structured JSON ─────────────────────────────
+        # ── Parse JSON from first call, then fallback to second call ────
         findings_data: list[dict] = []
         summary: str | None = None
         tools_used: list[str] = []
 
-        if context_id:
+        json_result = agent0.parse_scan_json(raw_report)
+        if not json_result and context_id:
             json_result = await agent0.extract_json(context_id)
-            if json_result:
-                tools_used = json_result.get("tools_used", [])
-                summary = json_result.get("summary")
-                findings_data = json_result.get("findings", [])
+
+        if json_result:
+            tools_used = json_result.get("tools_used", [])
+            summary = json_result.get("summary")
+            findings_data = json_result.get("findings", [])
 
         # ── Persist findings ─────────────────────────────────────────────
         for f in findings_data:
@@ -124,6 +172,7 @@ async def list_scans(db: AsyncSession, offset: int = 0, limit: int = 20) -> list
     result = await db.execute(
         select(ScanSession)
         .order_by(ScanSession.created_at.desc())
+        .options(selectinload(ScanSession.findings))
         .offset(offset)
         .limit(limit)
     )

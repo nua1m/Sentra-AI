@@ -1,8 +1,9 @@
 import asyncio
 import json
+import logging
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +14,7 @@ from api.services import scan_service
 from api.services.agent0_client import Agent0Client, get_agent0_client
 
 router = APIRouter(prefix="/api/v1/scans", tags=["scans"])
+logger = logging.getLogger(__name__)
 
 
 # ─── Start scan (async, returns 202 immediately) ─────────────────────────────
@@ -20,18 +22,16 @@ router = APIRouter(prefix="/api/v1/scans", tags=["scans"])
 @router.post("", response_model=ScanStarted, status_code=status.HTTP_202_ACCEPTED)
 async def start_scan(
     request: ScanRequest,
-    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     agent0: Agent0Client = Depends(get_agent0_client),
     _: str = Depends(verify_api_key),
 ) -> ScanStarted:
     """Accepts a scan request and returns immediately. Poll /stream for live output."""
+    await scan_service.fail_stale_running_scans(db)
     scan = await scan_service.create_pending_scan(db, request.target, request.scan_type)
 
-    # Run in background — uses its own DB session (background tasks can't share sessions)
-    background_tasks.add_task(
-        _run_scan_task, scan.id, request.target, request.scan_type
-    )
+    # Run in background — uses its own DB session
+    asyncio.create_task(_run_scan_task(scan.id, request.target, request.scan_type))
 
     return ScanStarted(
         scan_id=scan.id,
@@ -44,7 +44,13 @@ async def _run_scan_task(scan_id: uuid.UUID, target: str, scan_type: str) -> Non
     """Background task wrapper — creates its own DB session."""
     async with AsyncSessionLocal() as db:
         agent0 = Agent0Client()
-        await scan_service.run_scan(db, agent0, scan_id, target, scan_type)
+        try:
+            healthy = await agent0.check_health()
+            if not healthy:
+                logger.error("Agent0 unreachable before scan %s", scan_id)
+            await scan_service.run_scan(db, agent0, scan_id, target, scan_type)
+        except Exception:
+            logger.exception("Background scan task failed for %s", scan_id)
 
 
 # ─── SSE live stream ─────────────────────────────────────────────────────────

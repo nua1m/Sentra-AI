@@ -3,7 +3,13 @@ services:
     build: .                            # build from our custom Dockerfile
     image: sentra-ai:latest             # tag the built image
     container_name: sentra-ai
-    ports: []                           # NOT exposed — internal only
+    ports:
+      - "50001:80"                     # host access for debugging/UI
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
     networks:
       - sentra_net
     volumes:
@@ -25,8 +31,10 @@ services:
     networks:
       - sentra_net
     depends_on:
-      - agent0
-      - postgres
+      agent0:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     env_file: .env
     restart: unless-stopped
 

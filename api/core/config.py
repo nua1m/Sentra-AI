@@ -15,7 +15,9 @@ class Settings(BaseSettings):
 
     # Service config
     scan_timeout_seconds: int = 600   # 10 min max for a full audit
-    json_extract_timeout: int = 60    # 1 min for JSON extraction call
+    json_extract_timeout: int = 180   # JSON extraction can be slower on remote models
+    quick_scan_timeout_seconds: int = 180
+    stale_scan_timeout_seconds: int = 1800
     debug: bool = False
 
     class Config:
