@@ -1,6 +1,10 @@
-# Sentra API Operations
+# Sentra API Operations (Legacy / Deprecated)
 
-This guide covers the FastAPI service that wraps Sentra (Agent0) for scan automation.
+> [!WARNING]
+> This guide documents the previous API-first architecture and is no longer the default runtime path.
+> For current operations, use `sentra-runtime-ops.md`.
+
+This guide covers the older FastAPI wrapper architecture around Sentra (Agent0).
 
 ## Prerequisites
 
