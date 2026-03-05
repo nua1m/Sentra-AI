@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <div x-data >
+    <div x-data>
         <template x-if="$store.welcomeStore && $store.welcomeStore.isVisible">
             <div x-create="$store.welcomeStore.onCreate()" class="welcome-container">
                 <div class="welcome-content">
@@ -51,44 +51,41 @@
                     </div>
 
                     <div class="welcome-actions-footer">
-                        <button type="button"
-                                class="welcome-refresh-button"
-                                @click="$store.welcomeStore.refreshBanners(true)"
-                                :disabled="$store.welcomeStore.bannersLoading"
-                                title="Refresh banners">
-                            <span class="material-symbols-outlined" :class="{ 'welcome-spin': $store.welcomeStore.bannersLoading }">refresh</span>
+                        <button type="button" class="welcome-refresh-button"
+                            @click="$store.welcomeStore.refreshBanners(true)"
+                            :disabled="$store.welcomeStore.bannersLoading" title="Refresh banners">
+                            <span class="material-symbols-outlined"
+                                :class="{ 'welcome-spin': $store.welcomeStore.bannersLoading }">refresh</span>
                         </button>
 
-                        <button type="button"
-                                class="welcome-refresh-button"
-                                @click="$store.welcomeStore.undismissBanners()"
-                                x-show="$store.welcomeStore.hasDismissedBanners"
-                                :disabled="$store.welcomeStore.bannersLoading"
-                                title="Undismiss all banners">
+                        <button type="button" class="welcome-refresh-button"
+                            @click="$store.welcomeStore.undismissBanners()"
+                            x-show="$store.welcomeStore.hasDismissedBanners"
+                            :disabled="$store.welcomeStore.bannersLoading" title="Undismiss all banners">
                             <span class="material-symbols-outlined">undo</span>
                         </button>
                     </div>
 
                     <!-- Banner Section -->
-                    <div class="welcome-banners" x-show="$store.welcomeStore.banners && $store.welcomeStore.banners.length > 0">
+                    <div class="welcome-banners"
+                        x-show="$store.welcomeStore.banners && $store.welcomeStore.banners.length > 0">
                         <template x-for="banner in $store.welcomeStore.sortedBanners" :key="banner.id">
                             <div class="welcome-banner" :class="$store.welcomeStore.getBannerClass(banner.type)">
                                 <!-- Banner Icon -->
                                 <div class="welcome-banner-icon">
-                                    <span class="material-symbols-outlined" x-text="$store.welcomeStore.getBannerIcon(banner.type)"></span>
+                                    <span class="material-symbols-outlined"
+                                        x-text="$store.welcomeStore.getBannerIcon(banner.type)"></span>
                                 </div>
-                                
+
                                 <!-- Banner Content -->
                                 <div class="welcome-banner-content">
                                     <div class="welcome-banner-title" x-text="banner.title"></div>
                                     <div class="welcome-banner-html" x-html="banner.html"></div>
                                 </div>
-                                
+
                                 <!-- Dismiss Button -->
-                                <button class="welcome-banner-dismiss" 
-                                        x-show="banner.dismissible !== false"
-                                        @click.stop="$store.welcomeStore.dismissBanner(banner.id)"
-                                        title="Dismiss">
+                                <button class="welcome-banner-dismiss" x-show="banner.dismissible !== false"
+                                    @click.stop="$store.welcomeStore.dismissBanner(banner.id)" title="Dismiss">
                                     <span class="material-symbols-outlined">close</span>
                                 </button>
                             </div>
@@ -116,25 +113,7 @@
         }
 
         .welcome-container::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: url("./public/darkSymbol.svg");
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 80% auto;
-            opacity: 0.07;
-            pointer-events: none;
-        }
-
-        .light-mode .welcome-container::before {
-            filter: invert(0.55);
-            opacity: 0.06;
-        }
-
-        .dark-mode .welcome-container::before {
-            filter: invert(0.85);
-            opacity: 0.08;
+            content: none;
         }
 
         .welcome-content {
@@ -238,8 +217,13 @@
         }
 
         @keyframes welcome-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .welcome-action-card {
@@ -302,16 +286,10 @@
         }
 
         /* Banner Type Styles */
-        .welcome-banner.banner-info {
-            border-left: 4px solid #2196F3;
-        }
-
-        .welcome-banner.banner-warning {
-            border-left: 4px solid #FF9800;
-        }
-
+        .welcome-banner.banner-info,
+        .welcome-banner.banner-warning,
         .welcome-banner.banner-error {
-            border-left: 4px solid #F44336;
+            border-left: none;
         }
 
         /* Banner Icon */

@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Agent Zero</title>
+    <title>Login - Sentra AI</title>
     <link rel="stylesheet" href="/login.css">
     <link rel="icon" type="image/svg+xml" href="/public/favicon.svg">
 </head>
+
 <body>
     <div class="login-container">
         <form class="login-form" method="POST" action="/login">
-            <img src="/public/splash.jpg" alt="Agent Zero Logo" class="logo">
-            <h2>Agent Zero</h2>
+            <img src="/public/splash.jpg" alt="Sentra AI Logo" class="logo">
+            <h2>Sentra AI</h2>
             <div class="input-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required>
@@ -22,9 +24,10 @@
             </div>
             <button type="submit">Login</button>
             {% if error %}
-                <p class="error">{{ error }}</p>
+            <p class="error">{{ error }}</p>
             {% endif %}
         </form>
     </div>
 </body>
+
 </html>

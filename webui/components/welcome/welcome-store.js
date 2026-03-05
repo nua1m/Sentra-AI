@@ -216,10 +216,10 @@ const model = {
         chatInputStore.browseFiles();
         break;
       case "website":
-        window.open("https://agent-zero.ai", "_blank");
+        window.open("https://github.com/nua1m/Sentra-AI", "_blank");
         break;
       case "github":
-        window.open("https://github.com/agent0ai/agent-zero", "_blank");
+        window.open("https://github.com/nua1m/Sentra-AI", "_blank");
         break;
     }
   },

@@ -14,3 +14,6 @@ RUN apt-get update -qq && \
 
 # Create wordlists directory (rockyou.txt mounted from host via docker-compose)
 RUN mkdir -p /usr/share/wordlists
+
+# Apply Sentra UI customizations over upstream Agent0 web UI
+COPY webui /a0/webui
