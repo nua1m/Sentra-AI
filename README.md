@@ -16,11 +16,13 @@ Rather than relying on static rulesets, Sentra-AI utilizes dynamic agentic behav
 
 ## Architecture
 
-The system consists of three main components:
+The current deployment is a direct Agent0-based stack with Sentra branding:
 
-1. **Sentra API (`/api`)**: A FastAPI-based backend that orchestrates scan jobs, manages data persistence (via PostgreSQL), and handles Server-Sent Events (SSE) streaming of live logs to the client.
-2. **Agent0 Engine (`/a0` & `/python`)**: The core AI engine built upon the Agent Zero framework. It executes the actual security scanning strategies, utilizes specialized tools, and streams autonomous reasoning and execution logs back to the API.
-3. **Web UI (`/webui`)**: A React frontend interface for users to initiate scans, view real-time logs, and analyze the structured final JSON findings report.
+1. **Agent0 Runtime (`/python`, `/prompts`)**: Core autonomous agent execution, tool orchestration, reasoning loop, and scan workflows.
+2. **Sentra Web UI (`/webui`)**: Customized Agent0 frontend for chat-driven security assessment and process visibility.
+3. **Container Runtime (`Dockerfile`, `docker-compose.yml`)**: Dockerized runtime for consistent local demo deployment.
+
+> Note: the `/api` directory exists from earlier architecture work, but it is not part of the active runtime path for the current demo deployment.
 
 ## Quick Start
 
@@ -42,20 +44,19 @@ The system consists of three main components:
    ```
 
 ### Accessing the Platform
-- **Sentra API Docs**: http://localhost:8000/docs
-- **Sentra Web UI** (if running separately): Configure your frontend to point to `http://localhost:8000`
+- **Sentra Web UI**: http://localhost:50001
 
 ## Features
 
-- **Autonomous Scanning**: Simply provide a target, and the AI will determine the best tools and strategies to test that target.
-- **Live Logging**: Watch the AI's thought process and terminal execution in real-time as the scan progresses.
-- **Structured Findings**: At the end of the scan, receive a standardized vulnerability report including CVEs, CVSS scores, and remediation advice.
-- **Microservice Architecture**: Fully containerized and scalable design.
+- **Autonomous Scanning**: Provide a target and the agent selects tools/steps dynamically.
+- **Live Process Visibility**: Track reasoning and execution flow directly in chat/process groups.
+- **Readable Findings Output**: Security results and remediation guidance in natural-language report format.
+- **Direct UI Runtime**: No separate API service required for the main demo experience.
 
 ## Technical Details
 
-- **Backend**: Python 3.12+, FastAPI, SQLAlchemy (Async), PostgreSQL
-- **AI Core**: Agent Zero framework, httpx, asyncio
+- **Runtime**: Python 3.12+, Agent Zero framework
+- **Frontend**: Customized Agent0 Web UI (`/webui`)
 - **Containerization**: Docker, Docker Compose
 
 ## License
