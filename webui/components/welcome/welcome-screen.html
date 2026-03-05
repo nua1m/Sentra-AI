@@ -11,86 +11,45 @@
         <template x-if="$store.welcomeStore && $store.welcomeStore.isVisible">
             <div x-create="$store.welcomeStore.onCreate()" class="welcome-container">
                 <div class="welcome-content">
-                    <!-- Action Cards -->
-                    <div class="welcome-actions">
-                        <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('new-chat')">
-                            <span class="material-symbols-outlined welcome-action-icon">add_circle</span>
-                            <h3 class="welcome-action-title">New Chat</h3>
+                    <div class="welcome-ops-shell">
+                        <div class="welcome-ops-header">
+                            <span class="material-symbols-outlined">terminal</span>
+                            <h2>NEURAL_INTERFACE_QUERY</h2>
                         </div>
 
-                        <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('projects')">
-                            <span class="material-symbols-outlined welcome-action-icon">folder</span>
-                            <h3 class="welcome-action-title">Projects</h3>
-                        </div>
-                        <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('memory')">
-                            <span class="material-symbols-outlined welcome-action-icon">memory</span>
-                            <h3 class="welcome-action-title">Memory</h3>
-                        </div>
+                        <div class="welcome-ops-panel">
+                            <div class="welcome-ops-center">
+                                <div class="welcome-ops-icon">&lt;&gt;</div>
+                                <h3>READY FOR INSTRUCTION</h3>
+                                <p>Input command or query security matrix. AI core is synchronized with real-time scan
+                                    telemetry.</p>
+                            </div>
 
-                        <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('scheduler')">
-                            <span class="material-symbols-outlined welcome-action-icon">schedule</span>
-                            <h3 class="welcome-action-title">Scheduler</h3>
-                        </div>
-                        <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('settings')">
-                            <span class="material-symbols-outlined welcome-action-icon">settings</span>
-                            <h3 class="welcome-action-title">Settings</h3>
-                        </div>
-
-                        <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('files')">
-                            <span class="material-symbols-outlined welcome-action-icon">folder_open</span>
-                            <h3 class="welcome-action-title">Files</h3>
-                        </div>
-                        <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('website')">
-                            <span class="material-symbols-outlined welcome-action-icon">language</span>
-                            <h3 class="welcome-action-title">Visit Website</h3>
-                        </div>
-                        <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('github')">
-                            <span class="material-symbols-outlined welcome-action-icon">code</span>
-                            <h3 class="welcome-action-title">Visit GitHub</h3>
-                        </div>
-                    </div>
-
-                    <div class="welcome-actions-footer">
-                        <button type="button" class="welcome-refresh-button"
-                            @click="$store.welcomeStore.refreshBanners(true)"
-                            :disabled="$store.welcomeStore.bannersLoading" title="Refresh banners">
-                            <span class="material-symbols-outlined"
-                                :class="{ 'welcome-spin': $store.welcomeStore.bannersLoading }">refresh</span>
-                        </button>
-
-                        <button type="button" class="welcome-refresh-button"
-                            @click="$store.welcomeStore.undismissBanners()"
-                            x-show="$store.welcomeStore.hasDismissedBanners"
-                            :disabled="$store.welcomeStore.bannersLoading" title="Undismiss all banners">
-                            <span class="material-symbols-outlined">undo</span>
-                        </button>
-                    </div>
-
-                    <!-- Banner Section -->
-                    <div class="welcome-banners"
-                        x-show="$store.welcomeStore.banners && $store.welcomeStore.banners.length > 0">
-                        <template x-for="banner in $store.welcomeStore.sortedBanners" :key="banner.id">
-                            <div class="welcome-banner" :class="$store.welcomeStore.getBannerClass(banner.type)">
-                                <!-- Banner Icon -->
-                                <div class="welcome-banner-icon">
-                                    <span class="material-symbols-outlined"
-                                        x-text="$store.welcomeStore.getBannerIcon(banner.type)"></span>
-                                </div>
-
-                                <!-- Banner Content -->
-                                <div class="welcome-banner-content">
-                                    <div class="welcome-banner-title" x-text="banner.title"></div>
-                                    <div class="welcome-banner-html" x-html="banner.html"></div>
-                                </div>
-
-                                <!-- Dismiss Button -->
-                                <button class="welcome-banner-dismiss" x-show="banner.dismissible !== false"
-                                    @click.stop="$store.welcomeStore.dismissBanner(banner.id)" title="Dismiss">
-                                    <span class="material-symbols-outlined">close</span>
+                            <div class="welcome-command-row">
+                                <span class="welcome-command-prompt">&gt;_</span>
+                                <input type="text" id="welcome-command-input"
+                                    placeholder="Run query --scope=production --threat-level=critical"
+                                    @keydown.enter="if ($event.target.value?.trim()) { $store.chatInput.message = $event.target.value.trim(); $store.chatInput.sendMessage(); $event.target.value = ''; }" />
+                                <button type="button" class="welcome-exec-btn"
+                                    @click="const input = document.getElementById('welcome-command-input'); if (input && input.value?.trim()) { $store.chatInput.message = input.value.trim(); $store.chatInput.sendMessage(); input.value=''; }">
+                                    EXECUTE
                                 </button>
                             </div>
-                        </template>
+
+                            <div class="welcome-quick-cmds">
+                                <button type="button" class="welcome-quick-btn"
+                                    @click="$store.chatInput.message='List critical findings for current target'; $store.chatInput.sendMessage()">[
+                                    LIST_CRITICAL ]</button>
+                                <button type="button" class="welcome-quick-btn"
+                                    @click="$store.chatInput.message='Summarize network exposure and high-risk ports'; $store.chatInput.sendMessage()">[
+                                    SUMMARIZE_NETWORK ]</button>
+                                <button type="button" class="welcome-quick-btn"
+                                    @click="$store.chatInput.message='Run full attack surface audit with CVE enrichment'; $store.chatInput.sendMessage()">[
+                                    AUDIT_ATTACK_SURFACE ]</button>
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </template>
@@ -165,13 +124,118 @@
             line-height: 1.5;
         }
 
-        .welcome-actions {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            max-width: 640px;
+        .welcome-ops-shell {
             width: 100%;
+            max-width: 980px;
             margin: 1.5rem 0;
+            border: 1px solid var(--color-border);
+            background: color-mix(in srgb, var(--color-panel) 92%, #000 8%);
+            padding: 1.4rem;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .welcome-ops-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: var(--color-primary);
+        }
+
+        .welcome-ops-header h2 {
+            margin: 0;
+            font-size: 1.35rem;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+        }
+
+        .welcome-ops-panel {
+            border: 1px solid var(--color-border);
+            background: color-mix(in srgb, var(--color-panel) 94%, #000 6%);
+            padding: 1.2rem;
+        }
+
+        .welcome-ops-center {
+            text-align: center;
+            padding: 2.4rem 0 1.2rem;
+        }
+
+        .welcome-ops-icon {
+            font-size: 2.2rem;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.1em;
+        }
+
+        .welcome-ops-center h3 {
+            margin: 0.2rem 0 0.75rem;
+            letter-spacing: 0.08em;
+            font-size: 1.2rem;
+        }
+
+        .welcome-ops-center p {
+            margin: 0 auto;
+            max-width: 680px;
+            color: var(--color-text-secondary);
+            line-height: 1.6;
+        }
+
+        .welcome-command-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.75rem;
+            align-items: center;
+            margin-top: 1.2rem;
+            border: 1px solid var(--color-border);
+            padding: 0.6rem;
+        }
+
+        .welcome-command-prompt {
+            color: var(--color-primary);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            padding: 0 0.4rem;
+        }
+
+        #welcome-command-input {
+            border: none;
+            background: transparent;
+            color: var(--color-text);
+            outline: none;
+            font-family: "Roboto Mono", monospace;
+        }
+
+        .welcome-exec-btn {
+            border: 1px solid var(--color-primary);
+            background: var(--color-primary);
+            color: #000;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+
+        .welcome-quick-cmds {
+            margin-top: 0.9rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .welcome-quick-btn {
+            border: 1px solid var(--color-border);
+            background: transparent;
+            color: var(--color-text-secondary);
+            font-family: "Roboto Mono", monospace;
+            font-size: 0.78rem;
+            padding: 0.35rem 0.55rem;
+            cursor: pointer;
+        }
+
+        .welcome-quick-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-text);
         }
 
         .welcome-actions-footer {
@@ -440,23 +504,22 @@
                 margin-bottom: 0;
             }
 
-            .welcome-actions {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 0.75rem;
-                margin-bottom: 1.5rem;
+            .welcome-ops-shell {
+                margin: 0.8rem 0 1.5rem;
+                padding: 1rem;
             }
 
-            .welcome-action-card {
-                aspect-ratio: 1 / 1;
-                padding: 0.5rem;
+            .welcome-command-row {
+                grid-template-columns: 1fr;
+                gap: 0.55rem;
             }
 
-            .welcome-action-icon {
-                font-size: 1.6rem;
+            .welcome-command-prompt {
+                display: none;
             }
 
-            .welcome-action-title {
-                font-size: 0.85rem;
+            .welcome-exec-btn {
+                width: 100%;
             }
 
             .welcome-banners {
@@ -477,35 +540,9 @@
         }
 
         @media (max-width: 520px) {
-            .welcome-actions {
-                grid-template-columns: 1fr;
-                gap: 0.5rem;
-            }
-
-            .welcome-action-card {
-                aspect-ratio: auto;
-                padding: 0.5rem 0.75rem;
-                flex-direction: row;
-                justify-content: flex-start;
-                align-items: center;
+            .welcome-quick-btn {
+                width: 100%;
                 text-align: left;
-                border-radius: 10px;
-                min-height: 44px;
-            }
-
-            .welcome-action-icon {
-                margin-bottom: 0;
-                margin-right: 0.5rem;
-                font-size: 1.35rem;
-                line-height: 1;
-                display: flex;
-                align-items: center;
-            }
-
-            .welcome-action-title {
-                font-size: 0.95rem;
-                margin: 0;
-                line-height: 1.2;
             }
         }
     </style>
