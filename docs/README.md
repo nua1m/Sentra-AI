@@ -14,9 +14,7 @@ Welcome to the Agent Zero documentation hub. Whether you're getting started or d
 
 - **[Usage Guide](guides/usage.md):** Comprehensive guide to Agent Zero's features and capabilities.
 - **[Projects Tutorial](guides/projects.md):** Learn to create isolated workspaces with dedicated context and memory.
-- **[API Integration](guides/api-integration.md):** Add external APIs without writing code.
 - **[Sentra Runtime Operations](guides/sentra-runtime-ops.md):** Run and validate the active direct Agent0 deployment.
-- **[Sentra API Operations (Legacy)](guides/sentra-api-ops.md):** Reference for deprecated API-first architecture.
 - **[MCP Setup](guides/mcp-setup.md):** Configure Model Context Protocol servers.
 - **[A2A Setup](guides/a2a-setup.md):** Enable agent-to-agent communication.
 - **[Troubleshooting](guides/troubleshooting.md):** Solutions to common issues and FAQs.
@@ -85,13 +83,11 @@ Welcome to the Agent Zero documentation hub. Whether you're getting started or d
       - [Integration with Projects](guides/usage.md#integration-with-projects)
     - [Secrets & Variables](guides/usage.md#secrets--variables)
     - [Remote Access via Tunneling](guides/usage.md#remote-access-via-tunneling)
-    - [Voice Interface](guides/usage.md#voice-interface)
-    - [Memory Management](guides/usage.md#memory-management)
-    - [Backup & Restore](guides/usage.md#backup--restore)
+  - [Voice Interface](guides/usage.md#voice-interface)
+  - [Memory Management](guides/usage.md#memory-management)
+  - [Backup & Restore](guides/usage.md#backup--restore)
   - [Projects Tutorial](guides/projects.md)
-  - [API Integration](guides/api-integration.md)
   - [Sentra Runtime Operations](guides/sentra-runtime-ops.md)
-  - [Sentra API Operations (Legacy)](guides/sentra-api-ops.md)
   - [MCP Setup](guides/mcp-setup.md)
   - [A2A Setup](guides/a2a-setup.md)
   - [Troubleshooting](guides/troubleshooting.md)
