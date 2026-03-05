@@ -38,7 +38,7 @@
 
         <div id="chat-buttons-wrapper">
             <!-- Send button -->
-            <button class="chat-button" id="send-button" aria-label="Send message"
+            <button class="chat-button" id="send-button" :aria-label="$store.chatInput.sendButtonTitle"
                 @click="$store.chatInput.sendMessage()" :class="$store.chatInput.sendButtonClass"
                 :title="$store.chatInput.sendButtonTitle">
                 <span class="material-symbols-outlined" x-text="$store.chatInput.sendButtonIcon"></span>
@@ -212,6 +212,10 @@
             background-color: #e67e22;
         }
 
+        #send-button.stop-agent {
+            background-color: #d64545;
+        }
+
         #send-button:hover {
             -webkit-transform: scale(1.05);
             transform: scale(1.05);
@@ -223,11 +227,19 @@
             background-color: #d35400;
         }
 
+        #send-button.stop-agent:hover {
+            background-color: #b93333;
+        }
+
         #send-button:active {
             -webkit-transform: scale(1);
             transform: scale(1);
             transform-origin: center;
             background-color: #2b309c;
+        }
+
+        #send-button.stop-agent:active {
+            background-color: #9b2727;
         }
 
         .chat-button svg {

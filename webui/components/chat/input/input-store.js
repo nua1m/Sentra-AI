@@ -13,9 +13,12 @@ const model = {
     const hasInput = this.message.trim() || attachmentsStore?.attachments?.length > 0;
     const hasQueue = !!messageQueueStore?.hasQueue;
     const running = !!chatsStore.selectedContext?.running;
+    const paused = !!this.paused;
+
+    if (running) return paused ? "resume" : "pause";
 
     if (hasQueue && !hasInput) return "all";
-    if ((running || hasQueue) && hasInput) return "queue";
+    if (hasQueue && hasInput) return "queue";
     return "normal";
   },
 
@@ -28,6 +31,8 @@ const model = {
   // Computed: send button icon type
   get sendButtonIcon() {
     const state = this._getSendState();
+    if (state === "pause") return "stop";
+    if (state === "resume") return "play_arrow";
     if (state === "all") return "send_and_archive";
     if (state === "queue") return "schedule_send";
     return "send";
@@ -36,6 +41,7 @@ const model = {
   // Computed: send button CSS class
   get sendButtonClass() {
     const state = this._getSendState();
+    if (state === "pause" || state === "resume") return "stop-agent";
     if (state === "all") return "send-queue send-all";
     if (state === "queue") return "send-queue queue";
     return "";
@@ -44,6 +50,8 @@ const model = {
   // Computed: send button title
   get sendButtonTitle() {
     const state = this._getSendState();
+    if (state === "pause") return "Pause agent";
+    if (state === "resume") return "Resume agent";
     if (state === "all") return "Send all queued messages";
     if (state === "queue") return "Add to queue";
     return "Send message";
@@ -55,6 +63,12 @@ const model = {
   },
 
   async sendMessage() {
+    const running = !!chatsStore.selectedContext?.running;
+    if (running) {
+      await this.pauseAgent(!this.paused);
+      return;
+    }
+
     // Delegate to the global function
     if (globalThis.sendMessage) {
       await globalThis.sendMessage();
