@@ -10,9 +10,13 @@
   <div x-data>
     <template x-if="$store.sidebarBottom">
       <div class="sidebar-bottom-wrapper">
-        <!-- Version Info -->
-        <div class="version-info">
-          <span id="a0version" x-text="$store.sidebarBottom.versionLabel"></span>
+        <!-- Profile Info -->
+        <div class="profile-info">
+          <div class="profile-avatar" aria-hidden="true">A</div>
+          <div class="profile-meta">
+            <span class="profile-label">Username</span>
+            <span class="profile-name">admin</span>
+          </div>
         </div>
       </div>
     </template>
@@ -27,20 +31,47 @@
       flex-shrink: 0;
     }
 
-    /* Version label area */
-    .version-info {
-      line-height: 0.8rem;
+    /* Profile area */
+    .profile-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       position: relative;
       margin: 0 var(--spacing-md) 1rem var(--spacing-md);
       padding-top: 10px;
       border-top: 1px solid var(--color-border);
     }
 
-    #a0version {
+    .profile-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-primary, #00ff41);
+      color: #000;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .profile-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .profile-label {
+      color: var(--color-text-secondary, #888);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .profile-name {
       color: var(--color-text);
-      opacity: 0.7;
-      font-size: 0.7rem;
-      user-select: all;
+      font-size: 0.85rem;
+      font-weight: 600;
     }
   </style>
 </body>
