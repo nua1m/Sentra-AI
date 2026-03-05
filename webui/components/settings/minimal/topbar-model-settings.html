@@ -1,0 +1,94 @@
+<html>
+
+<head>
+    <script type="module">
+        import { store as settingsStore } from "/components/settings/settings-store.js";
+    </script>
+</head>
+
+<body>
+    <div x-data="{ apiKey: '', modelName: '', loading: false, loaded: false }" x-init="(async () => {
+      try {
+        await $store.settings.onOpen();
+        const settings = $store.settings.settings || {};
+        apiKey = settings.api_keys?.openrouter || '';
+        modelName = settings.chat_model_name || '';
+      } catch (e) {
+        console.warn('Failed to preload minimal settings', e);
+      } finally {
+        loaded = true;
+      }
+    })()">
+
+        <div class="minimal-settings">
+            <h3>Model Settings</h3>
+            <p class="desc">Enter OpenRouter API key and model. Sentra will apply these to Chat, Utility, and Browser
+                models automatically.</p>
+
+            <div class="field">
+                <label>OpenRouter API key</label>
+                <input type="password" x-model="apiKey" autocomplete="off" placeholder="sk-or-..." />
+            </div>
+
+            <div class="field">
+                <label>Model</label>
+                <input type="text" x-model="modelName" placeholder="openai/gpt-4.1" />
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-cancel"
+                    @click="closeModal('settings/minimal/topbar-model-settings.html')">Cancel</button>
+                <button class="btn btn-ok" :disabled="loading"
+                    @click="(async () => { loading = true; const ok = await $store.settings.saveMinimalModelSettings(apiKey, modelName); loading = false; if (ok) closeModal('settings/minimal/topbar-model-settings.html'); })()">
+                    <span x-show="!loading">Save</span>
+                    <span x-show="loading">Saving...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .minimal-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 420px;
+            max-width: 520px;
+        }
+
+        .minimal-settings h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .minimal-settings .desc {
+            margin: 0;
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .minimal-settings .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .minimal-settings input {
+            border: 1px solid var(--color-border);
+            background: var(--color-background);
+            color: var(--color-text);
+            border-radius: 8px;
+            padding: 10px;
+            outline: none;
+        }
+
+        .minimal-settings .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 4px;
+        }
+    </style>
+</body>
+
+</html>

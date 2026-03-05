@@ -200,11 +200,8 @@ const model = {
         window.openModal("modals/scheduler/scheduler-modal.html");
         break;
       case "settings":
-        // Open settings modal
-        const settingsButton = document.getElementById("settings");
-        if (settingsButton) {
-          settingsButton.click();
-        }
+        // Open minimal top-bar model settings modal
+        window.openModal("settings/minimal/topbar-model-settings.html");
         break;
       case "projects":
         projectsStore.openProjectsModal();

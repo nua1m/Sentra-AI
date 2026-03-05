@@ -28,7 +28,7 @@ const model = {
   settings: null,
   additional: null,
   workdirFileStructureTestOutput: "",
-  
+
   // Tab state
   _activeTab: DEFAULT_TAB,
   get activeTab() {
@@ -46,13 +46,13 @@ const model = {
     try {
       const saved = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
       if (saved) this._activeTab = saved;
-    } catch {}
+    } catch { }
   },
 
   async onOpen() {
     this.error = null;
     this.isLoading = true;
-    
+
     try {
       const response = await API.callJsonApi("settings_get", null);
       if (response && response.settings) {
@@ -85,7 +85,7 @@ const model = {
     // Persist
     try {
       localStorage.setItem(VIEW_MODE_STORAGE_KEY, current);
-    } catch {}
+    } catch { }
   },
 
   switchTab(tabName) {
@@ -134,6 +134,49 @@ const model = {
     } catch (e) {
       console.error("Failed to save settings:", e);
       toast("Failed to save settings: " + e.message, "error");
+      return false;
+    } finally {
+      this.isLoading = false;
+    }
+  },
+
+  async saveMinimalModelSettings(apiKey, modelName) {
+    this.error = null;
+    this.isLoading = true;
+    try {
+      const response = await API.callJsonApi("settings_get", null);
+      if (!response?.settings) throw new Error("Invalid settings response");
+
+      const settings = response.settings;
+      settings.api_keys = settings.api_keys || {};
+
+      const provider = "openrouter";
+      const model = (modelName || "").trim();
+
+      settings.api_keys[provider] = apiKey || "";
+
+      settings.chat_model_provider = provider;
+      settings.util_model_provider = provider;
+      settings.browser_model_provider = provider;
+
+      if (model) {
+        settings.chat_model_name = model;
+        settings.util_model_name = model;
+        settings.browser_model_name = model;
+      }
+
+      const saved = await API.callJsonApi("settings_set", { settings });
+      if (!saved?.settings) throw new Error("Failed to save settings");
+
+      this.settings = saved.settings;
+      this.additional = saved.additional || this.additional;
+
+      toast("Model settings saved", "success");
+      document.dispatchEvent(new CustomEvent("settings-updated", { detail: saved.settings }));
+      return true;
+    } catch (e) {
+      console.error("Failed to save minimal settings:", e);
+      toast("Failed to save model settings: " + (e?.message || e), "error");
       return false;
     } finally {
       this.isLoading = false;
@@ -191,4 +234,3 @@ const model = {
 const store = createStore("settings", model);
 
 export { store };
-
