@@ -9,16 +9,77 @@
 <body>
     <div x-data>
         <template x-if="$store.preferences">
-            <!-- Theme Toggle Button -->
-            <div class="notification-toggle" @click="$store.preferences.darkMode = !$store.preferences.darkMode"
-                :title="$store.preferences.darkMode ? 'Switch to light mode' : 'Switch to dark mode'">
-                <div class="notification-icon">
-                    <span class="material-symbols-outlined"
-                        x-text="$store.preferences.darkMode ? 'light_mode' : 'dark_mode'"></span>
-                </div>
-            </div>
+            <!-- Theme Toggle Button (left/right switch) -->
+            <button type="button" class="theme-toggle" :class="{ 'is-light': !$store.preferences.darkMode }"
+                @click="$store.preferences.darkMode = !$store.preferences.darkMode"
+                :title="$store.preferences.darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+                :aria-label="$store.preferences.darkMode ? 'Dark mode enabled. Switch to light mode' : 'Light mode enabled. Switch to dark mode'">
+                <span class="theme-option left" aria-hidden="true">
+                    <span class="material-symbols-outlined">dark_mode</span>
+                </span>
+                <span class="theme-option right" aria-hidden="true">
+                    <span class="material-symbols-outlined">light_mode</span>
+                </span>
+                <span class="theme-thumb" aria-hidden="true"></span>
+            </button>
         </template>
     </div>
 </body>
+
+<style>
+    .theme-toggle {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 58px;
+        height: 30px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border, #333);
+        background: var(--color-panel-dark, rgba(255, 255, 255, 0.06));
+        padding: 3px;
+        cursor: pointer;
+        transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+        border-color: var(--color-primary, #00ff41);
+    }
+
+    .theme-option {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-secondary, #888);
+        z-index: 2;
+    }
+
+    .theme-option .material-symbols-outlined {
+        font-size: 15px;
+    }
+
+    .theme-toggle .theme-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--color-primary, #00ff41);
+        transition: transform 0.2s ease;
+        z-index: 1;
+    }
+
+    .theme-toggle.is-light .theme-thumb {
+        transform: translateX(28px);
+    }
+
+    .theme-toggle:not(.is-light) .theme-option.left,
+    .theme-toggle.is-light .theme-option.right {
+        color: #000;
+    }
+</style>
 
 </html>
