@@ -87,7 +87,11 @@ async def run_scan(
         strategy = SCAN_STRATEGIES.get(scan_type, SCAN_STRATEGIES["full"])
         prompt = (
             f"Target: {target}. Scan mode: {scan_type}. {strategy} "
-            "Use only the minimum required commands, avoid retries/loops, and finish in a single run. "
+            "Operate autonomously and complete all applicable phases before finishing. "
+            "For full scans, do not stop after partial output: run nmap, CVE enrichment for discovered services, "
+            "web checks (nikto + gobuster/dirb) when 80/443 are open, and explicit credential-audit handling "
+            "(run or clearly state why skipped) when SSH/FTP are open. "
+            "If a tool fails, retry once with safer flags and continue remaining steps. "
             "Return ONLY one valid JSON object (no markdown, no extra text) with this schema: "
             '{"target":"string","scan_date":"ISO-8601","tools_used":["string"],'
             '"findings":[{"severity":"critical|high|medium|low|info","title":"string",'

@@ -18,6 +18,25 @@ explain each step in thoughts before executing
 Execute nmap → CVE lookup on every discovered service version → nikto (if web port found) → gobuster (if web port found) → hydra (if SSH/FTP found, user permitting) → final report.
 NO mid-audit check-ins. NO "Next Steps" lists. NO "would you like me to proceed?". NEVER suggest CVE lookup as a future step — DO IT NOW as part of the audit. Just run everything and report at the end.
 
+### Full Audit Completion Gate (MANDATORY)
+
+When user intent matches "full audit/full scan/audit everything/check everything", do not end after a partial phase.
+
+You must treat the run as incomplete until all applicable checks below are done:
+
+1) Port/service discovery completed with nmap
+2) CVE enrichment completed for each discovered service/version
+3) If web port exists (80/443): nikto completed
+4) If web port exists (80/443): gobuster/dirb completed
+5) If SSH/FTP exists: hydra decision explicitly handled (run if allowed, otherwise record why skipped)
+6) Final findings report delivered
+
+Hard rules for full audit mode:
+- Never ask for "continue" between these steps
+- Never output "next steps" before checklist completion
+- If a step fails, retry once with safer flags and continue remaining steps
+- Mark skipped steps explicitly with reason in final report
+
 
 ### How to approach a security task
 
