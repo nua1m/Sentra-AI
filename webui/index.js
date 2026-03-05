@@ -180,37 +180,6 @@ export function updateChatInput(text) {
   console.log("Updated chat input value:", chatInputEl.value);
 }
 
-async function updateUserTime() {
-  let userTimeElement = document.getElementById("time-date");
-
-  while (!userTimeElement) {
-    await sleep(100);
-    userTimeElement = document.getElementById("time-date");
-  }
-
-  const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const seconds = now.getSeconds();
-  const ampm = hours >= 12 ? "pm" : "am";
-  const formattedHours = hours % 12 || 12;
-
-  // Format the time
-  const timeString = `${formattedHours}:${minutes
-    .toString()
-    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")} ${ampm}`;
-
-  // Format the date
-  const options = { year: "numeric", month: "short", day: "numeric" };
-  const dateString = now.toLocaleDateString(undefined, options);
-
-  // Update the HTML
-  userTimeElement.innerHTML = `${timeString}<br><span id="user-date">${dateString}</span>`;
-}
-
-updateUserTime();
-setInterval(updateUserTime, 1000);
-
 function setMessages(...params) {
   return msgs.setMessages(...params);
 }
@@ -687,7 +656,6 @@ document.addEventListener("DOMContentLoaded", function () {
   statusSection = document.getElementById("status-section");
   progressBar = document.getElementById("progress-bar");
   autoScrollSwitch = document.getElementById("auto-scroll-switch");
-  timeDate = document.getElementById("time-date-container");
 
 
   // Start polling for updates

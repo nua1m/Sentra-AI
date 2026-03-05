@@ -9,24 +9,37 @@
 <body>
     <div x-data>
         <template x-if="$store.preferences">
-            <!-- Theme Toggle Button (left/right switch) -->
-            <button type="button" class="theme-toggle" :class="{ 'is-light': !$store.preferences.darkMode }"
-                @click="$store.preferences.darkMode = !$store.preferences.darkMode"
-                :title="$store.preferences.darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
-                :aria-label="$store.preferences.darkMode ? 'Dark mode enabled. Switch to light mode' : 'Light mode enabled. Switch to dark mode'">
-                <span class="theme-option left" aria-hidden="true">
-                    <span class="material-symbols-outlined">dark_mode</span>
-                </span>
-                <span class="theme-option right" aria-hidden="true">
-                    <span class="material-symbols-outlined">light_mode</span>
-                </span>
-                <span class="theme-thumb" aria-hidden="true"></span>
-            </button>
+            <div class="top-right-controls">
+                <!-- Theme Toggle Button (left/right switch) -->
+                <button type="button" class="theme-toggle" :class="{ 'is-light': !$store.preferences.darkMode }"
+                    @click="$store.preferences.darkMode = !$store.preferences.darkMode"
+                    :title="$store.preferences.darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+                    :aria-label="$store.preferences.darkMode ? 'Dark mode enabled. Switch to light mode' : 'Light mode enabled. Switch to dark mode'">
+                    <span class="theme-option left" aria-hidden="true">
+                        <span class="material-symbols-outlined">dark_mode</span>
+                    </span>
+                    <span class="theme-option right" aria-hidden="true">
+                        <span class="material-symbols-outlined">light_mode</span>
+                    </span>
+                    <span class="theme-thumb" aria-hidden="true"></span>
+                </button>
+
+                <button type="button" class="settings-toggle" @click="openModal('settings/settings.html')"
+                    title="Settings" aria-label="Open settings">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+            </div>
         </template>
     </div>
 </body>
 
 <style>
+    .top-right-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
     .theme-toggle {
         position: relative;
         display: inline-flex;
@@ -79,6 +92,28 @@
     .theme-toggle:not(.is-light) .theme-option.left,
     .theme-toggle.is-light .theme-option.right {
         color: #000;
+    }
+
+    .settings-toggle {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border, #333);
+        background: var(--color-panel-dark, rgba(255, 255, 255, 0.06));
+        color: var(--color-text, #e5e5e5);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border-color 0.2s ease;
+    }
+
+    .settings-toggle:hover {
+        border-color: var(--color-primary, #00ff41);
+    }
+
+    .settings-toggle .material-symbols-outlined {
+        font-size: 17px;
     }
 </style>
 
