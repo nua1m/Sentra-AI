@@ -18,6 +18,11 @@ const model = {
   },
 
   init() {
+    // Hard-disable welcome banners UI
+    this.banners = [];
+    this.hasDismissedBanners = false;
+    this.removeLegacyBannerUi();
+
     // Reload banners when settings change
     document.addEventListener("settings-updated", () => {
       this.refreshBanners(true);
@@ -26,7 +31,15 @@ const model = {
 
   onCreate() {
     if (this.isVisible) {
+      this.removeLegacyBannerUi();
       this.refreshBanners();
+    }
+  },
+
+  removeLegacyBannerUi() {
+    const selectors = [".welcome-actions-footer", ".welcome-banners"];
+    for (const selector of selectors) {
+      document.querySelectorAll(selector).forEach((el) => el.remove());
     }
   },
 
@@ -101,6 +114,13 @@ const model = {
 
   // Refresh banners: frontend checks → backend checks → merge
   async refreshBanners(force = false) {
+    // Explicitly disabled for Sentra dashboard simplification.
+    this.banners = [];
+    this.hasDismissedBanners = false;
+    this.bannersLoading = false;
+    this.removeLegacyBannerUi();
+    return;
+
     const now = Date.now();
     if (!force && now - this.lastBannerRefresh < 1000) return;
     this.lastBannerRefresh = now;

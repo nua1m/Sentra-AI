@@ -1438,6 +1438,16 @@ nav ul li a img {
   animation: spin 1s linear infinite;
 }
 
+/* Hard-disable legacy welcome banner UI surfaces */
+.welcome-actions-footer,
+.welcome-banners,
+.welcome-banner,
+.welcome-banner-icon,
+.welcome-banner-content,
+.welcome-banner-dismiss {
+  display: none !important;
+}
+
 /* Bootstrap Collapse */
 .collapse:not(.show) {
   display: none !important;
