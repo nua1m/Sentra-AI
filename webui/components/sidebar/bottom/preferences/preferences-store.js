@@ -40,7 +40,7 @@ const model = {
     this._chatWidth = value;
     this._applyChatWidth(value);
   },
-  _chatWidth: "55", // Default width in em (standard)
+  _chatWidth: "55", // Forced default: WIDE
 
   // Width presets: { label, value in em }
   chatWidthOptions: [
@@ -58,7 +58,7 @@ const model = {
     this._detailMode = value;
     this._applyDetailMode(value);
   },
-  _detailMode: "current", // Default: show current step only
+  _detailMode: "current", // Forced default: STEP (current step only)
 
   // Detail mode options for UI sidebar
   detailModeOptions: [
@@ -71,7 +71,7 @@ const model = {
   // Initialize preferences and apply current state
   init() {
     try {
-      // Load persisted preferences with safe fallbacks
+      // Dark mode can still be user-controlled via top toggle
       try {
         const storedDarkMode = localStorage.getItem("darkMode");
         this._darkMode = storedDarkMode !== "false";
@@ -79,33 +79,10 @@ const model = {
         this._darkMode = true; // Default to dark mode if localStorage is unavailable
       }
 
-      // Load chat width preference
-      try {
-        const storedChatWidth = localStorage.getItem("chatWidth");
-        if (storedChatWidth && this.chatWidthOptions.some(opt => opt.value === storedChatWidth)) {
-          this._chatWidth = storedChatWidth;
-        }
-      } catch {
-        this._chatWidth = "55"; // Default to standard
-      }
-
-      // Load detail mode preference
-      try {
-        const storedDetailMode = localStorage.getItem("detailMode");
-        if (storedDetailMode && this.detailModeOptions.some(opt => opt.value === storedDetailMode)) {
-          this._detailMode = storedDetailMode;
-        }
-      } catch {
-        this._detailMode = "current"; // Default
-      }
-
-      // load utility messages preference
-      try {
-        const storedShowUtils = localStorage.getItem("showUtils");
-        this._showUtils = storedShowUtils === "true";
-      } catch {
-        this._showUtils = false; // Default to speech off if localStorage is unavailable
-      }
+      // Sentra fixed defaults (not user-configurable in sidebar)
+      this._chatWidth = "55"; // WIDE
+      this._detailMode = "current"; // STEP
+      this._showUtils = false; // hide utility messages
 
       // Apply all preferences
       this._applyDarkMode(this._darkMode);

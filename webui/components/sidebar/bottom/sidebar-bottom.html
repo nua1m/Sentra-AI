@@ -1,16 +1,15 @@
 <html>
+
 <head>
   <script type="module">
     import { store } from "/components/sidebar/bottom/sidebar-bottom-store.js";
   </script>
 </head>
+
 <body>
   <div x-data>
     <template x-if="$store.sidebarBottom">
       <div class="sidebar-bottom-wrapper">
-        <!-- Preferences Panel -->
-        <x-component path="sidebar/bottom/preferences/preferences-panel.html"></x-component>
-        
         <!-- Version Info -->
         <div class="version-info">
           <span id="a0version" x-text="$store.sidebarBottom.versionLabel"></span>
@@ -45,5 +44,5 @@
     }
   </style>
 </body>
-</html>
 
+</html>
