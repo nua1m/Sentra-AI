@@ -3,7 +3,6 @@ import * as api from "/js/api.js";
 import * as css from "/js/css.js";
 import { sleep } from "/js/sleep.js";
 import { store as attachmentsStore } from "/components/chat/attachments/attachmentsStore.js";
-import { store as speechStore } from "/components/chat/speech/speech-store.js";
 import { store as notificationStore } from "/components/notifications/notification-store.js";
 import { store as preferencesStore } from "/components/sidebar/bottom/preferences/preferences-store.js";
 import { store as inputStore } from "/components/chat/input/input-store.js";
@@ -32,7 +31,6 @@ let leftPanel,
 let autoScroll = true;
 let context = null;
 globalThis.resetCounter = 0; // Used by stores and getChatBasedId
-let skipOneSpeech = false;
 
 // Sidebar toggle logic is now handled by sidebar-store.js
 
@@ -54,7 +52,7 @@ export async function sendMessage() {
         const success = messageQueueStore.addToQueue(message, attachmentsWithUrls);
         // no await for the queue
         // if (success) {
-          inputStore.reset();
+        inputStore.reset();
         // }
         return;
       }
@@ -77,9 +75,11 @@ export async function sendMessage() {
             : "";
 
         // Render user message with attachments
-        setMessages([{ id: messageId, type: "user", heading, content: message, kvps: {
-          // attachments: attachmentsWithUrls, // skip here, let the backend properly log them
-        }}]);
+        setMessages([{
+          id: messageId, type: "user", heading, content: message, kvps: {
+            // attachments: attachmentsWithUrls, // skip here, let the backend properly log them
+          }
+        }]);
 
         // sleep one frame to render the message before upload starts - better UX
         sleep(0);
@@ -274,7 +274,6 @@ function setConnectionStatus(connected) {
 
 let lastLogVersion = 0;
 let lastLogGuid = "";
-let lastSpokenNo = 0;
 
 export function buildStateRequestPayload(options = {}) {
   const { forceFull = false } = options || {};
@@ -372,28 +371,28 @@ export async function applySnapshot(snapshot, options = {}) {
       tasksStore.setSelected(context);
     }
 
-      if (!contextInChats && !contextInTasks) {
-        if (chatsStore.contexts.length > 0) {
-          // If it doesn't exist in the list but other contexts do, fall back to the first
-          const firstChatId = chatsStore.firstId();
-          if (firstChatId) {
-            setContext(firstChatId);
-            chatsStore.setSelected(firstChatId);
-          }
-        } else if (typeof deselectChat === "function") {
-          // No contexts remain – clear state so the welcome screen can surface
-          deselectChat();
+    if (!contextInChats && !contextInTasks) {
+      if (chatsStore.contexts.length > 0) {
+        // If it doesn't exist in the list but other contexts do, fall back to the first
+        const firstChatId = chatsStore.firstId();
+        if (firstChatId) {
+          setContext(firstChatId);
+          chatsStore.setSelected(firstChatId);
         }
+      } else if (typeof deselectChat === "function") {
+        // No contexts remain – clear state so the welcome screen can surface
+        deselectChat();
       }
-    } else {
-      // No context selected: keep it that way so the welcome screen stays visible.
     }
-
-    // update message queue
-    messageQueueStore.updateFromPoll();
-
-    return { updated };
+  } else {
+    // No context selected: keep it that way so the welcome screen stays visible.
   }
+
+  // update message queue
+  messageQueueStore.updateFromPoll();
+
+  return { updated };
+}
 
 export async function poll() {
   try {
@@ -422,44 +421,7 @@ export async function poll() {
 globalThis.poll = poll;
 
 function afterMessagesUpdate(logs) {
-  if (preferencesStore.speech) speakMessages(logs);
-}
-
-function speakMessages(logs) {
-  if (skipOneSpeech) {
-    skipOneSpeech = false;
-    return;
-  }
-  // log.no, log.type, log.heading, log.content
-  for (let i = logs.length - 1; i >= 0; i--) {
-    const log = logs[i];
-
-    // if already spoken, end
-    // if(log.no < lastSpokenNo) break;
-
-    // finished response
-    if (log.type == "response") {
-      // lastSpokenNo = log.no;
-      speechStore.speakStream(
-        getChatBasedId(log.no),
-        log.content,
-        log.kvps?.finished
-      );
-      return;
-
-      // finished LLM headline, not response
-    } else if (
-      log.type == "agent" &&
-      log.kvps &&
-      log.kvps.headline &&
-      log.kvps.tool_args &&
-      log.kvps.tool_name != "response"
-    ) {
-      // lastSpokenNo = log.no;
-      speechStore.speakStream(getChatBasedId(log.no), log.kvps.headline, true);
-      return;
-    }
-  }
+  return;
 }
 
 function updateProgress(progress, active) {
@@ -512,10 +474,6 @@ export const setContext = function (id) {
   // This ensures we get fresh data from the backend
   lastLogGuid = "";
   lastLogVersion = 0;
-  lastSpokenNo = 0;
-
-  // Stop speech when switching chats
-  speechStore.stopAudio();
 
   // Clear the chat history immediately to avoid showing stale content
   const chatHistoryEl = document.getElementById("chat-history");
@@ -537,8 +495,6 @@ export const setContext = function (id) {
     // no-op: sync store may not be initialized yet
   }
 
-  //skip one speech if enabled when switching context
-  if (preferencesStore.speech) skipOneSpeech = true;
 };
 
 export const deselectChat = function () {
@@ -695,7 +651,7 @@ async function startPolling() {
           now - lastHandshakeKickMs >= kickCooldownMs;
         if (eligible) {
           lastHandshakeKickMs = now;
-          syncStore.sendStateRequest({ forceFull: true }).catch(() => {});
+          syncStore.sendStateRequest({ forceFull: true }).catch(() => { });
         }
       }
 

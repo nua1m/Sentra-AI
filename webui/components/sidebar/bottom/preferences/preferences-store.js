@@ -1,6 +1,5 @@
 import { createStore } from "/js/AlpineStore.js";
 import * as css from "/js/css.js";
-import { store as speechStore } from "/components/chat/speech/speech-store.js";
 import { applyModeSteps } from "/components/messages/process-group/process-group-dom.js";
 
 // Preferences store centralizes user preference toggles and side-effects
@@ -23,15 +22,6 @@ const model = {
     this._applyDarkMode(value);
   },
   _darkMode: true,
-
-  get speech() {
-    return this._speech;
-  },
-  set speech(value) {
-    this._speech = value;
-    this._applySpeech(value);
-  },
-  _speech: false,
 
   get showUtils() {
     return this._showUtils;
@@ -89,13 +79,6 @@ const model = {
         this._darkMode = true; // Default to dark mode if localStorage is unavailable
       }
 
-      try {
-        const storedSpeech = localStorage.getItem("speech");
-        this._speech = storedSpeech === "true";
-      } catch {
-        this._speech = false; // Default to speech off if localStorage is unavailable
-      }
-
       // Load chat width preference
       try {
         const storedChatWidth = localStorage.getItem("chatWidth");
@@ -117,7 +100,7 @@ const model = {
       }
 
       // load utility messages preference
-      try{
+      try {
         const storedShowUtils = localStorage.getItem("showUtils");
         this._showUtils = storedShowUtils === "true";
       } catch {
@@ -127,7 +110,6 @@ const model = {
       // Apply all preferences
       this._applyDarkMode(this._darkMode);
       this._applyAutoScroll(this._autoScroll);
-      this._applySpeech(this._speech);
       this._applyShowUtils(this._showUtils);
       this._applyChatWidth(this._chatWidth);
       this._applyDetailMode(this._detailMode);
@@ -150,12 +132,6 @@ const model = {
     }
     localStorage.setItem("darkMode", value);
   },
-
-  _applySpeech(value) {
-    localStorage.setItem("speech", value);
-    if (!value) speechStore.stopAudio();
-  },
-
 
   _applyShowUtils(value) {
     localStorage.setItem("showUtils", value);

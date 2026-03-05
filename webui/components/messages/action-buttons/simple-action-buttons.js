@@ -2,13 +2,11 @@
 
 const ACTION_ICON_MAP = {
   detail: "open_in_full",
-  speak: "volume_up",
   copy: "content_copy",
 };
 
 const ACTION_LABELS = {
   detail: "View details",
-  speak: "Speak",
   copy: "Copy",
 };
 
@@ -47,10 +45,10 @@ export async function copyToClipboard(text) {
 export function showButtonFeedback(button, success, originalIcon) {
   const icon = button.querySelector(".material-symbols-outlined");
   if (!icon) return;
-  
+
   icon.textContent = success ? "check" : "error";
   button.classList.add(success ? "success" : "error");
-  
+
   setTimeout(() => {
     icon.textContent = originalIcon;
     button.classList.remove("success", "error");
@@ -61,6 +59,7 @@ export function showButtonFeedback(button, success, originalIcon) {
  * Create action button element
  */
 export function createActionButton(icon, text = "", handler = null) {
+  if (icon === "speak") return null;
   const iconName = resolveActionIcon(icon);
   if (!iconName) return null;
 
