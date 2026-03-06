@@ -14,12 +14,22 @@
   <style>
     #progress-bar-box {
       background-color: var(--color-panel);
-      padding: var(--spacing-sm) var(--spacing-md);
+      padding-top: var(--spacing-sm);
+      padding-bottom: 0;
+      padding-left: var(--spacing-sm);
+      padding-right: var(--spacing-md);
       padding-bottom: 0;
       display: flex;
       justify-content: space-between;
       z-index: 1001;
       gap: var(--spacing-sm);
+    }
+
+    @media (min-width: 1025px) {
+      #progress-bar-box {
+        padding-left: max(var(--spacing-sm), calc((100% - var(--chat-max-width, 55em)) / 2));
+        padding-right: max(var(--spacing-sm), calc((100% - var(--chat-max-width, 55em)) / 2));
+      }
     }
 
     #progress-bar-box h4 {
