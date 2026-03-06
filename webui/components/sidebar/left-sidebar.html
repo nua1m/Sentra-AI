@@ -32,22 +32,21 @@
   <style>
     /* Left Panel styles from index.css */
     #left-panel {
-      background: color-mix(in srgb, var(--color-panel) 92%, #ffffff 8%);
-      border: 1px solid var(--color-border);
-      border-radius: var(--shell-radius, 18px);
+      background-color: var(--color-panel);
+      border-right: 1px solid var(--color-border);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       transition: all var(--transition-speed) ease-in-out;
-      width: 286px;
-      min-width: 286px;
+      width: 250px;
+      min-width: 250px;
       color: var(--color-text);
-      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+      box-shadow: 1px 0 5px rgba(0, 0, 0, 0.3);
       user-select: none;
       -webkit-user-select: none;
       /* Safari compatibility */
-      height: calc(100vh - (var(--shell-gap, 14px) * 2));
+      height: 100vh;
       /* Ensure full height */
       overflow: hidden;
       /* Prevent overall panel overflow */
@@ -67,7 +66,7 @@
     }
 
     #left-panel.hidden {
-      margin-left: -300px;
+      margin-left: -250px;
     }
 
     .left-panel-top {
@@ -80,15 +79,14 @@
       /* Critical for allowing flex children to shrink */
       overflow: hidden;
       justify-content: space-between;
-      margin-top: 3.7rem;
-      padding: var(--spacing-md) var(--spacing-sm) 0 var(--spacing-sm);
+      margin-top: 3.5rem;
+      padding: var(--spacing-md) var(--spacing-md) 0 var(--spacing-md);
     }
 
     .left-panel-bottom {
       position: relative;
       flex-shrink: 0;
       flex-grow: 0;
-      padding-bottom: 2px;
       /* Prevent bottom from growing */
     }
 
@@ -130,7 +128,7 @@
     }
 
     .light-mode #left-panel {
-      box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
+      box-shadow: 1px 0 10px rgba(0, 0, 0, 0.1);
     }
 
     @media (max-width: 768px) {
@@ -139,17 +137,15 @@
         left: 0;
         top: 0;
         bottom: 0;
-        width: 286px !important;
+        width: 250px !important;
         /* Force width */
-        min-width: 286px;
+        min-width: 250px;
         z-index: 1003;
         transition: all var(--transition-speed) ease-in-out;
-        border-radius: 0 16px 16px 0;
-        height: 100vh;
       }
 
       #left-panel.hidden {
-        margin-left: -300px;
+        margin-left: -250px;
       }
     }
 

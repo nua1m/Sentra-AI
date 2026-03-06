@@ -16,60 +16,14 @@
         <template x-if="$store.chatTop">
 
             <div id="time-date-container">
-                <div class="chat-shell-title">
-                    <span class="chat-shell-kicker">SENTRA AI</span>
-                    <strong>Security Operations Workspace</strong>
-                </div>
-                <div class="chat-shell-controls">
-                    <x-component path="sync/sync-status.html"></x-component>
-                    <x-component path="notifications/notification-icons.html"></x-component>
-                </div>
+                <x-component path="sync/sync-status.html"></x-component>
+                <!-- Theme Toggle positioned next to time-date -->
+                <x-component path="notifications/notification-icons.html"></x-component>
             </div>
 
         </template>
     </div>
 
-    <style>
-        .chat-shell-title {
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-            line-height: 1.1;
-        }
-
-        .chat-shell-kicker {
-            font-size: 0.62rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            opacity: 0.7;
-            font-weight: 600;
-        }
-
-        .chat-shell-title strong {
-            font-size: 0.9rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .chat-shell-controls {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-left: auto;
-        }
-
-        @media (max-width: 640px) {
-            .chat-shell-title strong {
-                font-size: 0.8rem;
-            }
-
-            .chat-shell-kicker {
-                font-size: 0.56rem;
-            }
-        }
-    </style>
 </body>
 
 </html>
