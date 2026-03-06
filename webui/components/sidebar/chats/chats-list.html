@@ -10,13 +10,16 @@
   <div x-data>
     <template x-if="$store.chats">
       <div class="chats-list-container" x-data>
-        <div class="section-header-row">
-          <h3 class="section-header">Chats</h3>
-          <!-- New Chat Button -->
-          <button id="newChat" class="btn-icon-action chat-list-action-btn" @click="$store.chats.newChat()" aria-label="New Chat" title="New Chat" data-bs-placement="top" data-bs-trigger="hover">
-            <span class="material-symbols-outlined">edit_square</span>
+        <div class="section-header-row" style="margin-bottom: 12px; padding: 0 8px;">
+          <!-- Prominent New Scan Button -->
+          <button id="newChat" class="primary-scan-btn" @click="$store.chats.newChat()" aria-label="New Scan">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem;">radar</span>
+            <span>New Scan</span>
           </button>
         </div>
+        <h3 class="section-header"
+          style="padding: 0 8px; font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+          Recent Scans</h3>
 
 
 
@@ -28,10 +31,10 @@
                 <div class="chat-list-button">
                   <span :class="{'project-color-ball': true, 'heartbeat': context.running}"
                     :style="context.project?.color ? { backgroundColor: context.project.color } : { border: '1px solid var(--color-border)' }"></span>
-                  <span class="chat-name"
-                    x-text="context.name ? context.name : 'Chat #' + context.no"></span>
+                  <span class="chat-name" x-text="context.name ? context.name : 'Chat #' + context.no"></span>
                 </div>
-                <button class="btn-icon-action chat-list-action-btn" title="Close chat" @click.stop="$confirmClick($event, () => $store.chats.killChat(context.id))">
+                <button class="btn-icon-action chat-list-action-btn" title="Close chat"
+                  @click.stop="$confirmClick($event, () => $store.chats.killChat(context.id))">
                   <span class="material-symbols-outlined">close</span>
                 </button>
               </div>
@@ -48,17 +51,50 @@
   <style>
     .chats-list-container .section-header-row {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
       position: sticky;
       top: 0;
       flex-shrink: 0;
-      margin-bottom: var(--spacing-xs);
       z-index: 10;
+      background: var(--color-panel);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
+      padding-bottom: 10px !important;
     }
 
     .chats-list-container .section-header {
       margin: 0;
+    }
+
+    .primary-scan-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 88%, #fff 12%), var(--color-primary));
+      color: #07110a;
+      border: 1px solid color-mix(in srgb, var(--color-primary) 45%, #000 55%);
+      border-radius: 11px;
+      padding: 11px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary) 24%, transparent);
+      transition: all 0.2s ease;
+    }
+
+    .light-mode .primary-scan-btn {
+      color: #fff;
+    }
+
+    .primary-scan-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 10px 22px color-mix(in srgb, var(--color-primary) 36%, transparent);
+    }
+
+    .primary-scan-btn:active {
+      transform: translateY(0);
     }
 
     /* Chats list container and items */
@@ -67,15 +103,16 @@
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      margin-top: var(--spacing-md);
+      margin-top: var(--spacing-sm);
     }
 
     .chats-config-list {
       flex: 1;
       min-height: 0;
-      overflow: scroll;
+      overflow: auto;
       scroll-behavior: smooth;
       max-height: 100%;
+      padding-right: 4px;
     }
 
     .chat-container {
@@ -84,17 +121,20 @@
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      min-height: 40px;
-      border-radius: 4px;
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+      margin-bottom: 4px;
     }
 
     .chat-list-button {
       display: flex;
       align-items: center;
       flex-grow: 1;
-      padding: 8px;
+      padding: 9px 10px;
       overflow: hidden;
       gap: 0.5em;
     }
@@ -113,15 +153,17 @@
       overflow: hidden;
       text-overflow: ellipsis;
       font-size: var(--font-size-small);
+      opacity: 0.92;
     }
 
     .chat-list-action-btn {
       flex-shrink: 0;
-      margin-right: 8px;
+      margin-right: 6px;
     }
 
-    .chat-container:hover{
-      background-color: var(--color-background-hover);
+    .chat-container:hover {
+      background-color: color-mix(in srgb, var(--color-background-hover) 75%, transparent);
+      border-color: color-mix(in srgb, var(--color-border) 80%, transparent);
     }
 
     .device-pointer .chat-container .chat-list-action-btn {
@@ -161,7 +203,13 @@
     /* Selected chat accent */
     .chat-selected .chat-name {
       font-size: var(--font-size-normal);
-      font-weight: bold;
+      font-weight: 700;
+      opacity: 1;
+    }
+
+    .chat-selected {
+      border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+      background: color-mix(in srgb, var(--color-primary) 8%, transparent);
     }
 
     /* .chat-list-button.font-bold { position: relative; background-color: var(--color-border) 0.05; } */

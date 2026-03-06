@@ -129,10 +129,13 @@
             max-width: 980px;
             margin: 1.5rem 0;
             border: 1px solid var(--color-border);
-            background: color-mix(in srgb, var(--color-panel) 92%, #000 8%);
+            background: color-mix(in srgb, var(--color-panel) 92%, transparent 8%);
             padding: 1.4rem;
-            border-radius: 8px;
+            border-radius: 12px;
             text-align: left;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         .welcome-ops-header {
@@ -152,8 +155,9 @@
 
         .welcome-ops-panel {
             border: 1px solid var(--color-border);
-            background: color-mix(in srgb, var(--color-panel) 94%, #000 6%);
+            background: var(--color-message-bg);
             padding: 1.2rem;
+            border-radius: 8px;
         }
 
         .welcome-ops-center {
@@ -188,7 +192,10 @@
             align-items: center;
             margin-top: 1.2rem;
             border: 1px solid var(--color-border);
-            padding: 0.6rem;
+            border-radius: 9999px;
+            /* Pill shape */
+            padding: 0.6rem 1rem;
+            background: var(--color-input);
         }
 
         .welcome-command-prompt {
@@ -213,7 +220,20 @@
             font-weight: 700;
             letter-spacing: 0.08em;
             padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            /* Match pill shape */
             cursor: pointer;
+            box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary) 50%, transparent);
+            transition: all 0.2s ease;
+        }
+
+        .welcome-exec-btn:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+
+        .welcome-exec-btn:active {
+            transform: scale(0.95);
         }
 
         .welcome-quick-cmds {
@@ -230,7 +250,9 @@
             font-family: "Roboto Mono", monospace;
             font-size: 0.78rem;
             padding: 0.35rem 0.55rem;
+            border-radius: 6px;
             cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .welcome-quick-btn:hover {

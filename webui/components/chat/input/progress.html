@@ -13,12 +13,12 @@
 
   <style>
     #progress-bar-box {
-      background-color: var(--color-panel);
-      padding-top: var(--spacing-sm);
+      background: transparent;
+      padding-top: 0;
       padding-bottom: 0;
       padding-left: var(--spacing-sm);
       padding-right: var(--spacing-md);
-      padding-bottom: 0;
+      margin-top: auto;
       display: flex;
       justify-content: space-between;
       z-index: 1001;
@@ -33,25 +33,31 @@
     }
 
     #progress-bar-box h4 {
-      margin: 0 1.2em 0 0;
+      margin: 0;
+      width: 100%;
     }
 
     #progress-bar-h {
-      color: var(--color-primary);
+      color: color-mix(in srgb, var(--color-primary) 70%, var(--color-text));
       display: flex;
       align-items: left;
       justify-content: flex-start;
-      height: 1.2em;
+      min-height: 1.6em;
       text-overflow: ellipsis;
       white-space: nowrap;
       overflow: hidden;
-      font-weight: normal;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: color-mix(in srgb, var(--color-input) 84%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+      border-radius: 999px;
+      padding: 5px 10px;
     }
 
     #progress-bar-i {
       font-weight: bold;
-      padding-right: 0.5em;
-      color: var(--color-secondary);
+      padding-right: 0.42em;
+      color: color-mix(in srgb, var(--color-primary) 60%, var(--color-text-muted));
     }
 
     .shiny-text {
