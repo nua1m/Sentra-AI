@@ -23,39 +23,9 @@ services:
       - A0_SET_auth__login_required=false
       - A0_SET_auth__require_api_key=false
 
-  api:
-    build: ./api
-    container_name: sentra-api
-    ports:
-      - "8000:8000"
-    networks:
-      - sentra_net
-    depends_on:
-      agent0:
-        condition: service_healthy
-      postgres:
-        condition: service_started
-    env_file: .env
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: sentra-postgres
-    networks:
-      - sentra_net
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-sentra}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB:-sentra_ai}
-    restart: unless-stopped
-    # NOT exposed to host — internal only
-
 networks:
   sentra_net:
     driver: bridge
 
 volumes:
   sentra_data:
-  pg_data:
