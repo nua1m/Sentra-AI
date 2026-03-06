@@ -20,7 +20,7 @@ Expected core services:
 
 - `sentra-ai` (Agent0 runtime + Sentra UI)
 
-Optional legacy services may still exist in compose (for old architecture experiments), but they are not required for the current demo flow.
+The active compose file now includes only this service for the current demo/runtime model.
 
 ## Quick Health Check
 
@@ -64,6 +64,12 @@ docker compose build agent0
 docker compose up -d agent0
 ```
 
+If you previously ran older compose variants and see stale/orphan containers:
+
+```bash
+docker compose up -d --remove-orphans
+```
+
 ## Troubleshooting
 
 - UI not reflecting latest changes:
@@ -79,5 +85,4 @@ docker compose up -d agent0
 ## Legacy API Mode (Deprecated)
 
 The older API-first flow is documented in `sentra-api-ops.md` for reference only.
-Use it only if you intentionally run the separate FastAPI/PostgreSQL scan stack.
-
+Use it only if you intentionally run a separate FastAPI/PostgreSQL scan stack from another compose setup.
