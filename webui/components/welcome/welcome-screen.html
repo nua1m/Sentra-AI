@@ -14,21 +14,21 @@
                     <div class="welcome-ops-shell">
                         <div class="welcome-ops-header">
                             <span class="material-symbols-outlined">terminal</span>
-                            <h2>NEURAL_INTERFACE_QUERY</h2>
+                            <h2>SECURITY OPERATIONS WORKSPACE</h2>
                         </div>
 
                         <div class="welcome-ops-panel">
                             <div class="welcome-ops-center">
                                 <div class="welcome-ops-icon">&lt;&gt;</div>
-                                <h3>READY FOR INSTRUCTION</h3>
-                                <p>Input command or query security matrix. AI core is synchronized with real-time scan
-                                    telemetry.</p>
+                                <h3>READY TO ASSIST</h3>
+                                <p>Submit a security request, investigation prompt, or audit objective. Sentra will
+                                    process your input and return structured findings.</p>
                             </div>
 
                             <div class="welcome-command-row">
                                 <span class="welcome-command-prompt">&gt;_</span>
                                 <input type="text" id="welcome-command-input"
-                                    placeholder="Run query --scope=production --threat-level=critical"
+                                    placeholder="Example: Summarize high-risk exposure across the current target"
                                     @keydown.enter="if ($event.target.value?.trim()) { $store.chatInput.message = $event.target.value.trim(); $store.chatInput.sendMessage(); $event.target.value = ''; }" />
                                 <button type="button" class="welcome-exec-btn"
                                     @click="const input = document.getElementById('welcome-command-input'); if (input && input.value?.trim()) { $store.chatInput.message = input.value.trim(); $store.chatInput.sendMessage(); input.value=''; }">
@@ -39,13 +39,13 @@
                             <div class="welcome-quick-cmds">
                                 <button type="button" class="welcome-quick-btn"
                                     @click="$store.chatInput.message='List critical findings for current target'; $store.chatInput.sendMessage()">[
-                                    LIST_CRITICAL ]</button>
+                                    CRITICAL_FINDINGS ]</button>
                                 <button type="button" class="welcome-quick-btn"
                                     @click="$store.chatInput.message='Summarize network exposure and high-risk ports'; $store.chatInput.sendMessage()">[
-                                    SUMMARIZE_NETWORK ]</button>
+                                    NETWORK_EXPOSURE_SUMMARY ]</button>
                                 <button type="button" class="welcome-quick-btn"
                                     @click="$store.chatInput.message='Run full attack surface audit with CVE enrichment'; $store.chatInput.sendMessage()">[
-                                    AUDIT_ATTACK_SURFACE ]</button>
+                                    ATTACK_SURFACE_AUDIT ]</button>
                             </div>
                         </div>
                     </div>
