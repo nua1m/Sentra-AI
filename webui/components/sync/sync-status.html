@@ -10,6 +10,16 @@
         .status-icon {
             display: inline-flex;
             align-items: center;
+            gap: 0.38rem;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .light-mode .status-icon {
+            color: rgba(15, 23, 42, 0.74);
         }
 
         .status-icon svg {
@@ -42,32 +52,30 @@
 <body>
     <div x-data>
         <template x-if="$store.sync">
-            <div
-                class="status-icon"
-                x-create="$store.sync.init()"
-                :title="$store.sync.mode === 'HEALTHY'
+            <div class="status-icon" x-create="$store.sync.init()" :title="$store.sync.mode === 'HEALTHY'
                   ? 'Connected (push sync healthy)'
                   : $store.sync.mode === 'HANDSHAKE_PENDING'
                     ? 'Connecting (waiting for state handshake)'
                     : $store.sync.mode === 'DEGRADED'
                       ? 'Degraded (polling fallback)'
-                      : 'Disconnected (waiting to reconnect)'"
-            >
+                      : 'Disconnected (waiting to reconnect)'">
                 <svg viewBox="0 0 30 30" width="20" height="20" aria-label="sync status">
                     <!-- HEALTHY (filled circle) -->
-                    <circle x-show="$store.sync.mode === 'HEALTHY'" cx="15" cy="15" r="8" fill="#00c340" />
+                    <circle x-show="$store.sync.mode === 'HEALTHY'" cx="15" cy="15" r="8" fill="#22c55e" />
 
                     <!-- DEGRADED (filled circle) -->
                     <circle x-show="$store.sync.mode === 'DEGRADED'" cx="15" cy="15" r="8" fill="#ff6b00" />
 
                     <!-- HANDSHAKE_PENDING (pulsing outline) -->
-                    <circle x-show="$store.sync.mode === 'HANDSHAKE_PENDING'" class="pending-ring" cx="15" cy="15" r="12"
-                        fill="none" stroke="#f0a000" stroke-width="3" />
+                    <circle x-show="$store.sync.mode === 'HANDSHAKE_PENDING'" class="pending-ring" cx="15" cy="15"
+                        r="12" fill="none" stroke="#f0a000" stroke-width="3" />
 
                     <!-- DISCONNECTED (outline circle) -->
-                    <circle x-show="$store.sync.mode === 'DISCONNECTED'" cx="15" cy="15" r="12"
-                        fill="none" stroke="#e40138" stroke-width="3" />
+                    <circle x-show="$store.sync.mode === 'DISCONNECTED'" cx="15" cy="15" r="12" fill="none"
+                        stroke="#e40138" stroke-width="3" />
                 </svg>
+                <span class="status-label"
+                    x-text="$store.sync.mode === 'HEALTHY' ? 'Online' : ($store.sync.mode === 'HANDSHAKE_PENDING' ? 'Syncing' : ($store.sync.mode === 'DEGRADED' ? 'Degraded' : 'Offline'))">Online</span>
             </div>
         </template>
     </div>

@@ -15,14 +15,54 @@
     <div x-data>
         <template x-if="$store.chatTop">
 
-            <div id="time-date-container">
-                <x-component path="sync/sync-status.html"></x-component>
-                <!-- Theme Toggle positioned next to time-date -->
-                <x-component path="notifications/notification-icons.html"></x-component>
+            <div id="time-date-container" class="top-control-capsule">
+                <div class="capsule-status-wrap">
+                    <x-component path="sync/sync-status.html"></x-component>
+                </div>
+                <div class="capsule-actions-wrap">
+                    <x-component path="notifications/notification-icons.html"></x-component>
+                </div>
             </div>
 
         </template>
     </div>
+
+    <style>
+        #time-date-container.top-control-capsule {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.52rem 0.9rem;
+            background: rgba(26, 26, 30, 0.86);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+        }
+
+        .light-mode #time-date-container.top-control-capsule {
+            background: rgba(255, 255, 255, 0.88);
+            border-color: rgba(15, 23, 42, 0.12);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+        }
+
+        .capsule-status-wrap {
+            padding-right: 0.75rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.12);
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .light-mode .capsule-status-wrap {
+            border-right-color: rgba(15, 23, 42, 0.12);
+        }
+
+        .capsule-actions-wrap {
+            display: inline-flex;
+            align-items: center;
+        }
+    </style>
 
 </body>
 

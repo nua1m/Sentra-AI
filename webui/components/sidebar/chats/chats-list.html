@@ -10,13 +10,13 @@
   <div x-data>
     <template x-if="$store.chats">
       <div class="chats-list-container" x-data>
-        <div class="section-header-row">
-          <h3 class="section-header">Chats</h3>
-          <!-- New Chat Button -->
-          <button id="newChat" class="btn-icon-action chat-list-action-btn" @click="$store.chats.newChat()" aria-label="New Chat" title="New Chat" data-bs-placement="top" data-bs-trigger="hover">
-            <span class="material-symbols-outlined">edit_square</span>
+        <div class="sidebar-history-top">
+          <button id="newChat" class="new-scan-btn" @click="$store.chats.newChat()" aria-label="New Scan"
+            title="New Scan" data-bs-placement="top" data-bs-trigger="hover">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
           </button>
         </div>
+        <h3 class="history-kicker">History</h3>
 
 
 
@@ -28,10 +28,10 @@
                 <div class="chat-list-button">
                   <span :class="{'project-color-ball': true, 'heartbeat': context.running}"
                     :style="context.project?.color ? { backgroundColor: context.project.color } : { border: '1px solid var(--color-border)' }"></span>
-                  <span class="chat-name"
-                    x-text="context.name ? context.name : 'Chat #' + context.no"></span>
+                  <span class="chat-name" x-text="context.name ? context.name : 'Chat #' + context.no"></span>
                 </div>
-                <button class="btn-icon-action chat-list-action-btn" title="Close chat" @click.stop="$confirmClick($event, () => $store.chats.killChat(context.id))">
+                <button class="btn-icon-action chat-list-action-btn" title="Close chat"
+                  @click.stop="$confirmClick($event, () => $store.chats.killChat(context.id))">
                   <span class="material-symbols-outlined">close</span>
                 </button>
               </div>
@@ -46,19 +46,51 @@
   </div>
 
   <style>
-    .chats-list-container .section-header-row {
+    .sidebar-history-top {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      flex-shrink: 0;
-      margin-bottom: var(--spacing-xs);
-      z-index: 10;
+      justify-content: flex-start;
+      margin-bottom: 1.4rem;
     }
 
-    .chats-list-container .section-header {
+    .history-kicker {
       margin: 0;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: #71717a;
+      margin-bottom: 0.9rem;
+    }
+
+    .new-scan-btn {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 12px;
+      background: #1a1a1e;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: none;
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .new-scan-btn .material-symbols-outlined {
+      font-size: 1.6rem;
+      font-weight: 300;
+    }
+
+    .new-scan-btn:hover {
+      border-color: rgba(255, 255, 255, 0.26);
+      transform: translateY(-1px);
+      box-shadow: none;
+    }
+
+    .new-scan-btn:active {
+      transform: translateY(0);
     }
 
     /* Chats list container and items */
@@ -67,15 +99,18 @@
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      margin-top: var(--spacing-md);
+      margin-top: 0;
     }
 
     .chats-config-list {
       flex: 1;
       min-height: 0;
-      overflow: scroll;
+      overflow: auto;
       scroll-behavior: smooth;
       max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
     }
 
     .chat-container {
@@ -84,17 +119,19 @@
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      min-height: 40px;
-      border-radius: 4px;
+      min-height: 44px;
+      border-radius: 10px;
+      border-left: none;
       overflow: hidden;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
     .chat-list-button {
       display: flex;
       align-items: center;
       flex-grow: 1;
-      padding: 8px;
+      padding: 0.7rem 0.8rem;
       overflow: hidden;
       gap: 0.5em;
     }
@@ -112,16 +149,17 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-size: var(--font-size-small);
+      font-size: 0.9rem;
+      color: #a1a1aa;
     }
 
     .chat-list-action-btn {
       flex-shrink: 0;
-      margin-right: 8px;
+      margin-right: 6px;
     }
 
-    .chat-container:hover{
-      background-color: var(--color-background-hover);
+    .chat-container:hover {
+      background-color: rgba(255, 255, 255, 0.04);
     }
 
     .device-pointer .chat-container .chat-list-action-btn {
@@ -160,8 +198,14 @@
 
     /* Selected chat accent */
     .chat-selected .chat-name {
-      font-size: var(--font-size-normal);
-      font-weight: bold;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .chat-selected {
+      background: #1a1a1e;
+      border-left: none;
+      box-shadow: none;
     }
 
     /* .chat-list-button.font-bold { position: relative; background-color: var(--color-border) 0.05; } */

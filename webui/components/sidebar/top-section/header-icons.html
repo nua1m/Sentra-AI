@@ -9,61 +9,12 @@
 
 <body>
   <div class="icons-section" id="hide-button" x-data>
-    <!-- Sidebar Toggle Button -->
-    <button id="toggle-sidebar" class="toggle-sidebar-button" @click="$store.sidebar.toggle()"
-      aria-label="Toggle Sidebar" aria-expanded="false">
-      <span class="material-symbols-outlined" aria-hidden="true">menu</span>
-    </button>
-
   </div>
 
 
   <style>
-    /* Sidebar toggle button + logo container (migrated) */
-    .toggle-sidebar-button {
-      height: 2.6rem;
-      width: 2.6rem;
-      background-color: var(--color-background);
-      border: 0.1rem solid var(--color-border);
-      border-radius: var(--spacing-xs);
-      color: var(--color-text);
-      opacity: 0.8;
-      cursor: pointer;
-      left: var(--spacing-md);
-      padding: 0.47rem 0.56rem;
-      position: absolute;
-      top: var(--spacing-md);
-      z-index: 999;
-      -webkit-transition: all var(--transition-speed) ease-in-out;
-      transition: all var(--transition-speed) ease-in-out;
-    }
-
-    .toggle-sidebar-button:hover {
-      background-color: var(--color-background-hover);
-      opacity: 1;
-    }
-
-    .toggle-sidebar-button:active {
-      opacity: 0.5;
-    }
-
-    .toggle-sidebar-button .material-symbols-outlined {
-      font-size: 22px;
-      -webkit-transition: all var(--transition-speed) ease;
-      transition: all var(--transition-speed) ease;
-    }
-
-    .toggle-sidebar-button:active .material-symbols-outlined {
-      -webkit-transform: scaleY(0.8);
-      transform: scaleY(0.8);
-    }
-
-    @media (max-width: 768px) {
-      .toggle-sidebar-button {
-        position: fixed;
-        left: var(--spacing-md);
-        z-index: 1004;
-      }
+    .icons-section {
+      display: none;
     }
   </style>
 </body>

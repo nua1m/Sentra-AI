@@ -9,29 +9,29 @@
 
 :root {
   /* Dark mode */
-  --color-background-dark: #000000;
-  --color-text-dark: #d1d5db;
-  --color-text-muted-dark: #6b7280;
+  --color-background-dark: #09090b;
+  --color-text-dark: #e4e4e7;
+  --color-text-muted-dark: #a1a1aa;
   --color-primary-dark: #00ff41;
-  --color-secondary-dark: #333333;
-  --color-accent-dark: #cf6679;
-  --color-message-bg-dark: #0d0d0d;
+  --color-secondary-dark: #1a1a1e;
+  --color-accent-dark: #ef4444;
+  --color-message-bg-dark: #1a1a1e;
   --color-highlight-dark: #00ff41;
-  --color-message-text-dark: #d1d5db;
-  --color-panel-dark: #0a0a0a;
-  --color-border-dark: #1a1a1a;
-  --color-input-dark: #0d0d0d;
-  --color-input-focus-dark: #121212;
-  --color-chat-background-dark: #0d0d0d;
+  --color-message-text-dark: #e4e4e7;
+  --color-panel-dark: #1a1a1e;
+  --color-border-dark: #27272a;
+  --color-input-dark: #1a1a1e;
+  --color-input-focus-dark: #202024;
+  --color-chat-background-dark: #09090b;
   --color-error-text-dark: #e72323;
   --color-warning-text-dark: #e79c23;
-  --color-table-row-dark: #0d0d0d;
+  --color-table-row-dark: #1a1a1e;
 
   /* Sentra mono dark palette helpers */
-  --sentra-bg-sidebar-dark: #0a0a0a;
-  --sentra-bg-card-dark: #0d0d0d;
-  --sentra-border-dim-dark: #1a1a1a;
-  --sentra-border-bright-dark: #333333;
+  --sentra-bg-sidebar-dark: #09090b;
+  --sentra-bg-card-dark: #1a1a1e;
+  --sentra-border-dim-dark: #27272a;
+  --sentra-border-bright-dark: #3f3f46;
 
   /* Light mode */
   --color-background-light: #fafafa;
@@ -390,6 +390,7 @@ img {
   display: -webkit-flex;
   display: flex;
   height: 100%;
+  background: var(--color-background);
 }
 
 .panel {
@@ -408,6 +409,7 @@ img {
   width: 100%;
   flex-direction: column;
   flex-grow: 1;
+  background: var(--color-background);
   -webkit-transition: margin-left var(--transition-speed) ease-in-out;
   transition: margin-left var(--transition-speed) ease-in-out;
 }

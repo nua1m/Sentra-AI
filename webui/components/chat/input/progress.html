@@ -13,7 +13,7 @@
 
   <style>
     #progress-bar-box {
-      background-color: var(--color-panel);
+      background: transparent;
       padding-top: var(--spacing-sm);
       padding-bottom: 0;
       padding-left: var(--spacing-sm);
@@ -46,16 +46,17 @@
       white-space: nowrap;
       overflow: hidden;
       font-weight: normal;
+      letter-spacing: 0.01em;
     }
 
     #progress-bar-i {
       font-weight: bold;
       padding-right: 0.5em;
-      color: var(--color-secondary);
+      color: #22c55e;
     }
 
     .shiny-text {
-      background: linear-gradient(to right, var(--color-primary-dark) 20%, var(--color-text) 40%, var(--color-text) 60%, var(--color-primary-dark) 60%);
+      background: linear-gradient(to right, var(--color-primary-dark) 20%, var(--color-text) 40%, var(--color-text) 60%, var(--color-primary-dark) 80%);
       background-size: 200% auto;
       color: transparent;
       -webkit-background-clip: text;

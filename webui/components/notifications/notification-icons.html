@@ -10,18 +10,12 @@
     <div x-data>
         <template x-if="$store.preferences">
             <div class="top-right-controls">
-                <!-- Theme Toggle Button (left/right switch) -->
                 <button type="button" class="theme-toggle" :class="{ 'is-light': !$store.preferences.darkMode }"
                     @click="$store.preferences.darkMode = !$store.preferences.darkMode"
                     :title="$store.preferences.darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
                     :aria-label="$store.preferences.darkMode ? 'Dark mode enabled. Switch to light mode' : 'Light mode enabled. Switch to dark mode'">
-                    <span class="theme-option left" aria-hidden="true">
-                        <span class="material-symbols-outlined">dark_mode</span>
-                    </span>
-                    <span class="theme-option right" aria-hidden="true">
-                        <span class="material-symbols-outlined">light_mode</span>
-                    </span>
-                    <span class="theme-thumb" aria-hidden="true"></span>
+                    <span class="material-symbols-outlined"
+                        x-text="$store.preferences.darkMode ? 'light_mode' : 'dark_mode'">dark_mode</span>
                 </button>
 
                 <button type="button" class="settings-toggle"
@@ -38,61 +32,36 @@
     .top-right-controls {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
     }
 
     .theme-toggle {
-        position: relative;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1px solid var(--color-border, #333);
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.9);
         display: inline-flex;
         align-items: center;
-        justify-content: space-between;
-        width: 58px;
-        height: 30px;
-        border-radius: 999px;
-        border: 1px solid var(--color-border, #333);
-        background: var(--color-panel-dark, rgba(255, 255, 255, 0.06));
-        padding: 3px;
+        justify-content: center;
         cursor: pointer;
         transition: border-color 0.2s ease, background 0.2s ease;
     }
 
     .theme-toggle:hover {
-        border-color: var(--color-primary, #00ff41);
+        border-color: rgba(255, 255, 255, 0.35);
+        color: #fff;
     }
 
-    .theme-option {
-        width: 24px;
-        height: 24px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-text-secondary, #888);
-        z-index: 2;
+    .light-mode .theme-toggle {
+        background: rgba(15, 23, 42, 0.03);
+        border-color: rgba(15, 23, 42, 0.18);
+        color: rgba(15, 23, 42, 0.65);
     }
 
-    .theme-option .material-symbols-outlined {
-        font-size: 15px;
-    }
-
-    .theme-toggle .theme-thumb {
-        position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: var(--color-primary, #00ff41);
-        transition: transform 0.2s ease;
-        z-index: 1;
-    }
-
-    .theme-toggle.is-light .theme-thumb {
-        transform: translateX(28px);
-    }
-
-    .theme-toggle:not(.is-light) .theme-option.left,
-    .theme-toggle.is-light .theme-option.right {
-        color: #000;
+    .theme-toggle .material-symbols-outlined {
+        font-size: 18px;
     }
 
     .settings-toggle {
@@ -100,8 +69,8 @@
         height: 30px;
         border-radius: 999px;
         border: 1px solid var(--color-border, #333);
-        background: var(--color-panel-dark, rgba(255, 255, 255, 0.06));
-        color: var(--color-text, #e5e5e5);
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.7);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -109,8 +78,21 @@
         transition: border-color 0.2s ease;
     }
 
+    .light-mode .settings-toggle {
+        background: rgba(15, 23, 42, 0.03);
+        border-color: rgba(15, 23, 42, 0.18);
+        color: rgba(15, 23, 42, 0.65);
+    }
+
     .settings-toggle:hover {
-        border-color: var(--color-primary, #00ff41);
+        border-color: rgba(255, 255, 255, 0.35);
+        color: #fff;
+    }
+
+    .light-mode .settings-toggle:hover,
+    .light-mode .theme-toggle:hover {
+        border-color: rgba(15, 23, 42, 0.35);
+        color: rgba(15, 23, 42, 0.9);
     }
 
     .settings-toggle .material-symbols-outlined {
