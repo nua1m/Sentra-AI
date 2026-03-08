@@ -65,6 +65,10 @@
       margin-bottom: 0.9rem;
     }
 
+    .light-mode .history-kicker {
+      color: #64748b;
+    }
+
     .new-scan-btn {
       width: 3rem;
       height: 3rem;
@@ -83,6 +87,12 @@
       transform-origin: center;
     }
 
+    .light-mode .new-scan-btn {
+      background: #ffffff;
+      border-color: rgba(15, 23, 42, 0.16);
+      color: rgba(15, 23, 42, 0.86);
+    }
+
     .new-scan-btn .material-symbols-outlined {
       font-size: 1.6rem;
       font-weight: 300;
@@ -96,6 +106,11 @@
       background-color: #1a1a1e;
       transform: translateY(-1px) scale(1.08);
       box-shadow: none;
+    }
+
+    .light-mode .new-scan-btn:hover {
+      border-color: rgba(15, 23, 42, 0.28);
+      background-color: #f8fafc;
     }
 
     .new-scan-btn:hover .material-symbols-outlined {
@@ -185,6 +200,10 @@
       letter-spacing: 0.01em;
     }
 
+    .light-mode .chat-name {
+      color: #475569;
+    }
+
     .chat-list-action-btn {
       flex-shrink: 0;
       margin-right: 6px;
@@ -193,6 +212,10 @@
     .chat-container:hover {
       background-color: rgba(255, 255, 255, 0.04);
       transform: translateX(3px);
+    }
+
+    .light-mode .chat-container:hover {
+      background-color: rgba(15, 23, 42, 0.06);
     }
 
     .device-pointer .chat-container .chat-list-action-btn {
@@ -235,10 +258,18 @@
       font-weight: 500;
     }
 
+    .light-mode .chat-selected .chat-name {
+      color: #0f172a;
+    }
+
     .chat-selected {
       background: #1a1a1e;
       border-left: none;
       box-shadow: none;
+    }
+
+    .light-mode .chat-selected {
+      background: #e2e8f0;
     }
 
     /* .chat-list-button.font-bold { position: relative; background-color: var(--color-border) 0.05; } */
