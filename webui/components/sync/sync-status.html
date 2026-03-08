@@ -30,6 +30,28 @@
             animation: pendingPulse 1.2s infinite ease-in-out;
         }
 
+        .healthy-ping {
+            transform-origin: center;
+            animation: healthyPing 1.6s ease-out infinite;
+        }
+
+        @keyframes healthyPing {
+            0% {
+                transform: scale(0.9);
+                opacity: 0.42;
+            }
+
+            70% {
+                transform: scale(1.45);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1.45);
+                opacity: 0;
+            }
+        }
+
         @keyframes pendingPulse {
             0% {
                 stroke-opacity: 1;
@@ -60,6 +82,10 @@
                       ? 'Degraded (polling fallback)'
                       : 'Disconnected (waiting to reconnect)'">
                 <svg viewBox="0 0 30 30" width="20" height="20" aria-label="sync status">
+                    <!-- HEALTHY ping ring -->
+                    <circle x-show="$store.sync.mode === 'HEALTHY'" class="healthy-ping" cx="15" cy="15" r="8"
+                        fill="#22c55e" />
+
                     <!-- HEALTHY (filled circle) -->
                     <circle x-show="$store.sync.mode === 'HEALTHY'" cx="15" cy="15" r="8" fill="#22c55e" />
 
