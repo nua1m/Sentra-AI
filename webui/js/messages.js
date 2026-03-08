@@ -298,7 +298,7 @@ function drawProcessStep({
     if (classes) step.classList.add(...classes);
 
     let appendTarget = stepsContainer;
-    
+
     // grouping subordinate chain under the delegation call
     // for now disabled, let's keep the UI simple and unified for now
     // const parentStep = findParentDelegationStep(group, log.agentno);
@@ -414,16 +414,16 @@ function drawProcessStep({
 
   // update content
   let stepDetailContent;
-  if(content){
-  stepDetailContent = ensureChild(
-    stepDetailScroll,
-    ".process-step-detail-content",
-    "p",
-    "process-step-detail-content",
-    ...(contentClasses || []),
-  );
-  const adjustedContent = adjustStepContent(content)
-  stepDetailContent.innerHTML = adjustedContent;
+  if (content) {
+    stepDetailContent = ensureChild(
+      stepDetailScroll,
+      ".process-step-detail-content",
+      "p",
+      "process-step-detail-content",
+      ...(contentClasses || []),
+    );
+    const adjustedContent = adjustStepContent(content)
+    stepDetailContent.innerHTML = adjustedContent;
   }
 
   // reapply scroll position (autoscroll if bottom) - only when expanded already and not mass rendering
@@ -711,9 +711,9 @@ export function drawMessageDefault({
   const contentText = String(content ?? "");
   const actionButtons = contentText.trim()
     ? [
-        createActionButton("speak", "", () => speechStore.speak(contentText)),
-        createActionButton("copy", "", () => copyToClipboard(contentText)),
-      ].filter(Boolean)
+      createActionButton("speak", "", () => speechStore.speak(contentText)),
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    ].filter(Boolean)
     : [];
 
   return drawStandaloneMessage({
@@ -792,9 +792,9 @@ export function drawMessageResponse({
     const contentText = String(content ?? "");
     const actionButtons = contentText.trim()
       ? [
-          createActionButton("speak", "", () => speechStore.speak(contentText)),
-          createActionButton("copy", "", () => copyToClipboard(contentText)),
-        ].filter(Boolean)
+        createActionButton("speak", "", () => speechStore.speak(contentText)),
+        createActionButton("copy", "", () => copyToClipboard(contentText)),
+      ].filter(Boolean)
       : [];
     return drawProcessStep({
       id,
@@ -859,9 +859,9 @@ export function drawMessageResponse({
   const responseText = String(content ?? "");
   const responseActionButtons = responseText.trim()
     ? [
-        createActionButton("speak", "", () => speechStore.speak(responseText)),
-        createActionButton("copy", "", () => copyToClipboard(responseText)),
-      ].filter(Boolean)
+      createActionButton("speak", "", () => speechStore.speak(responseText)),
+      createActionButton("copy", "", () => copyToClipboard(responseText)),
+    ].filter(Boolean)
     : [];
   setupCollapsible(
     messageDiv,
@@ -997,9 +997,9 @@ export function drawMessageUser({
   const userText = String(content ?? "");
   const userActionButtons = userText.trim()
     ? [
-        createActionButton("speak", "", () => speechStore.speak(userText)),
-        createActionButton("copy", "", () => copyToClipboard(userText)),
-      ].filter(Boolean)
+      createActionButton("speak", "", () => speechStore.speak(userText)),
+      createActionButton("copy", "", () => copyToClipboard(userText)),
+    ].filter(Boolean)
     : [];
   const actionButtonsContainer = ensureChild(
     messageDiv,
@@ -1062,14 +1062,14 @@ export function drawMessageToolSimple({
   const contentText = String(content ?? "");
   const actionButtons = contentText.trim()
     ? [
-        createActionButton("detail", "", () =>
-          stepDetailStore.showStepDetail(
-            buildDetailPayload(arguments[0], { headerLabels }),
-          ),
+      createActionButton("detail", "", () =>
+        stepDetailStore.showStepDetail(
+          buildDetailPayload(arguments[0], { headerLabels }),
         ),
-        createActionButton("speak", "", () => speechStore.speak(contentText)),
-        createActionButton("copy", "", () => copyToClipboard(contentText)),
-      ].filter(Boolean)
+      ),
+      createActionButton("speak", "", () => speechStore.speak(contentText)),
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    ].filter(Boolean)
     : [];
 
   return drawProcessStep({
@@ -1129,8 +1129,8 @@ export function drawMessageCodeExe({
     ),
     commandText.trim()
       ? createActionButton("copy", "Command", () =>
-          copyToClipboard(commandText),
-        )
+        copyToClipboard(commandText),
+      )
       : null,
     outputText.trim()
       ? createActionButton("copy", "Output", () => copyToClipboard(outputText))
@@ -1164,14 +1164,14 @@ export function drawMessageBrowser({
   const answerText = String(kvps?.answer ?? "");
   const actionButtons = answerText.trim()
     ? [
-        createActionButton("detail", "", () =>
-          stepDetailStore.showStepDetail(
-            buildDetailPayload(arguments[0], { headerLabels: [] }),
-          ),
+      createActionButton("detail", "", () =>
+        stepDetailStore.showStepDetail(
+          buildDetailPayload(arguments[0], { headerLabels: [] }),
         ),
-        createActionButton("speak", "", () => speechStore.speak(answerText)),
-        createActionButton("copy", "", () => copyToClipboard(answerText)),
-      ].filter(Boolean)
+      ),
+      createActionButton("speak", "", () => speechStore.speak(answerText)),
+      createActionButton("copy", "", () => copyToClipboard(answerText)),
+    ].filter(Boolean)
     : [];
 
   return drawProcessStep({
@@ -1205,14 +1205,14 @@ export function drawMessageMcp({
   const contentText = String(content ?? "");
   const actionButtons = contentText.trim()
     ? [
-        createActionButton("detail", "", () =>
-          stepDetailStore.showStepDetail(
-            buildDetailPayload(arguments[0], { headerLabels }),
-          ),
+      createActionButton("detail", "", () =>
+        stepDetailStore.showStepDetail(
+          buildDetailPayload(arguments[0], { headerLabels }),
         ),
-        createActionButton("speak", "", () => speechStore.speak(contentText)),
-        createActionButton("copy", "", () => copyToClipboard(contentText)),
-      ].filter(Boolean)
+      ),
+      createActionButton("speak", "", () => speechStore.speak(contentText)),
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    ].filter(Boolean)
     : [];
 
   return drawProcessStep({
@@ -1246,14 +1246,14 @@ export function drawMessageSubagent({
   const contentText = String(content ?? "");
   const actionButtons = contentText.trim()
     ? [
-        createActionButton("detail", "", () =>
-          stepDetailStore.showStepDetail(
-            buildDetailPayload(arguments[0], { headerLabels }),
-          ),
+      createActionButton("detail", "", () =>
+        stepDetailStore.showStepDetail(
+          buildDetailPayload(arguments[0], { headerLabels }),
         ),
-        createActionButton("speak", "", () => speechStore.speak(contentText)),
-        createActionButton("copy", "", () => copyToClipboard(contentText)),
-      ].filter(Boolean)
+      ),
+      createActionButton("speak", "", () => speechStore.speak(contentText)),
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    ].filter(Boolean)
     : [];
 
   return drawProcessStep({
@@ -1281,9 +1281,9 @@ export function drawMessageInfo({
   const contentText = String(content ?? "");
   const actionButtons = contentText.trim()
     ? [
-        createActionButton("speak", "", () => speechStore.speak(contentText)),
-        createActionButton("copy", "", () => copyToClipboard(contentText)),
-      ].filter(Boolean)
+      createActionButton("speak", "", () => speechStore.speak(contentText)),
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    ].filter(Boolean)
     : [];
 
   return drawProcessStep({
@@ -1313,9 +1313,9 @@ export function drawMessageUtil({
   const contentText = String(content ?? "");
   const actionButtons = contentText.trim()
     ? [
-        createActionButton("speak", "", () => speechStore.speak(contentText)),
-        createActionButton("copy", "", () => copyToClipboard(contentText)),
-      ].filter(Boolean)
+      createActionButton("speak", "", () => speechStore.speak(contentText)),
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    ].filter(Boolean)
     : [];
 
   const result = drawProcessStep({
@@ -1348,9 +1348,9 @@ export function drawMessageHint({
   const contentText = String(content ?? "");
   const actionButtons = contentText.trim()
     ? [
-        createActionButton("speak", "", () => speechStore.speak(contentText)),
-        createActionButton("copy", "", () => copyToClipboard(contentText)),
-      ].filter(Boolean)
+      createActionButton("speak", "", () => speechStore.speak(contentText)),
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    ].filter(Boolean)
     : [];
 
   return drawStandaloneMessage({
@@ -1407,9 +1407,9 @@ export function drawMessageWarning({
   const contentText = String(content ?? "");
   const actionButtons = contentText.trim()
     ? [
-        createActionButton("speak", "", () => speechStore.speak(contentText)),
-        createActionButton("copy", "", () => copyToClipboard(contentText)),
-      ].filter(Boolean)
+      createActionButton("speak", "", () => speechStore.speak(contentText)),
+      createActionButton("copy", "", () => copyToClipboard(contentText)),
+    ].filter(Boolean)
     : [];
 
   //if process group is running, append there
@@ -2165,7 +2165,8 @@ function setupCollapsible(
   actionButtons = [],
 ) {
   messageDiv.classList.add("message-collapsible");
-  messageDiv.classList.toggle("expanded", initialExpanded);
+  // Sentra UI: keep message bodies expanded to avoid Show more/Show less truncation controls.
+  messageDiv.classList.add("expanded");
 
   const container = ensureChild(
     messageDiv,
@@ -2175,20 +2176,7 @@ function setupCollapsible(
   );
   container.textContent = "";
 
-  const btn = ensureChild(container, ".expand-btn", "button", "expand-btn");
-  const syncBtn = () => {
-    const exp = messageDiv.classList.contains("expanded");
-    btn.textContent = exp ? "Show less" : "Show more";
-    btn.classList.toggle("show-less-btn", exp);
-    btn.classList.toggle("show-more-btn", !exp);
-  };
-  syncBtn();
-  btn.onclick = () => {
-    messageDiv.classList.toggle("expanded");
-    syncBtn();
-    messageDiv.classList.contains("expanded") ||
-      (messageDiv.querySelector(".message-body").scrollTop = 0);
-  };
+  // Intentionally omit expand/collapse button to prevent shortened text UI.
 
   actionButtons.filter(Boolean).forEach((b) => container.appendChild(b));
 
