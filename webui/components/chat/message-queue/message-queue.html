@@ -1,9 +1,11 @@
 <html>
+
 <head>
   <script type="module">
     import { store } from "/components/chat/message-queue/message-queue-store.js";
   </script>
 </head>
+
 <body>
   <div x-data>
     <template x-if="$store.messageQueue?.hasQueue">
@@ -35,12 +37,8 @@
                 <template x-if="item.attachments?.length > 0">
                   <div class="queue-attachments">
                     <template x-for="att in item.attachments" :key="att">
-                      <img 
-                        :src="$store.messageQueue.getAttachmentUrl(att)" 
-                        :alt="att"
-                        class="queue-attachment-thumb"
-                        :title="att"
-                      />
+                      <img :src="$store.messageQueue.getAttachmentUrl(att)" :alt="att" class="queue-attachment-thumb"
+                        :title="att" />
                     </template>
                   </div>
                 </template>
@@ -95,7 +93,7 @@
       display: flex;
       align-items: center;
       opacity: 0.6;
-      transition: all 0.1s ease-in-out;
+      transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out, background-color var(--transition-speed) ease, color var(--transition-speed) ease;
     }
 
     .queue-header-btn:hover {
@@ -237,8 +235,11 @@
     }
 
     @keyframes pending-spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
 </body>
+
 </html>

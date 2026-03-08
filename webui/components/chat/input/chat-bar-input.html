@@ -62,6 +62,7 @@
             border-radius: 999px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
             padding: 0 0.38rem;
+            transition: border-color var(--transition-speed) ease, background-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
         }
 
         .light-mode #chat-input-container {
@@ -78,7 +79,7 @@
             cursor: pointer;
             color: #d4d4d8;
             opacity: 0.9;
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            transition: opacity 0.2s ease, transform 0.2s ease, color var(--transition-speed) ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -86,6 +87,10 @@
             height: 1.75rem;
             line-height: 0;
             z-index: 2;
+        }
+
+        .light-mode .attachment-icon {
+            color: #64748b;
         }
 
         .attachment-icon:hover {
@@ -116,8 +121,8 @@
             resize: none;
             background-clip: border-box;
             outline: none;
-            transition: all 0.3s ease;
-            -webkit-transition: all 0.3s ease;
+            transition: all var(--transition-speed) ease;
+            -webkit-transition: all var(--transition-speed) ease;
         }
 
         .light-mode #chat-input {
@@ -183,8 +188,8 @@
             line-height: 0;
             z-index: 2;
             overflow: hidden;
-            -webkit-transition: all var(--transition-speed), transform 0.1s ease-in-out;
-            transition: all var(--transition-speed), transform 0.1s ease-in-out;
+            -webkit-transition: all var(--transition-speed) ease, transform 0.1s ease-in-out;
+            transition: all var(--transition-speed) ease, transform 0.1s ease-in-out;
         }
 
         #send-button {
@@ -261,6 +266,10 @@
             animation: sendPulse 1.25s ease-out infinite;
             pointer-events: none;
             z-index: 1;
+        }
+
+        .light-mode .send-pulse {
+            background: rgba(15, 23, 42, 0.14);
         }
 
         @keyframes sendPulse {

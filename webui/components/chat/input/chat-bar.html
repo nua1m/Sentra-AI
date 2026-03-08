@@ -29,7 +29,7 @@
         /* Input section wrapper */
         #input-section {
             position: relative;
-            background: linear-gradient(180deg, rgba(9, 9, 11, 0) 0%, rgba(9, 9, 11, 0.92) 32%, rgba(9, 9, 11, 1) 100%);
+            background-color: transparent;
             display: -webkit-flex;
             display: flex;
             flex-direction: column;
@@ -43,6 +43,7 @@
             place-items: normal;
             flex-shrink: 0;
             z-index: 1001;
+            transition: background-color var(--transition-speed) ease;
         }
 
         @media (min-width: 1025px) {

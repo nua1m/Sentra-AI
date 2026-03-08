@@ -15,8 +15,8 @@
   padding-right: var(--spacing-md) !important;
   padding-top: 4rem !important;
   padding-bottom: 4rem !important;
-  -webkit-transition: all 0.3s ease;
-  transition: all 0.3s ease;
+  -webkit-transition: all var(--transition-speed) ease;
+  transition: all var(--transition-speed) ease;
 }
 
 /* Message Styles */
@@ -112,7 +112,7 @@
 .message-info,
 .message-util,
 .message-warning {
-  color: #e0e0e0;
+  color: var(--color-text);
   background-color: transparent;
   border-radius: 0;
   box-shadow: none;

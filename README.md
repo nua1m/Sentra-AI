@@ -46,6 +46,30 @@ The current deployment is a direct Agent0-based stack with Sentra branding:
 ### Accessing the Platform
 - **Sentra Web UI**: http://localhost:50001
 
+### Rebuild / Restart Docker Runtime
+
+Use these commands when you change files (especially under [`/webui`](Sentra-AI/webui)) and need the running container to pick up updates.
+
+1. Rebuild and recreate the runtime container:
+   ```bash
+   docker compose up -d --build agent0
+   ```
+
+2. Optional: restart only (no rebuild):
+   ```bash
+   docker compose restart agent0
+   ```
+
+3. Verify container health and UI availability:
+   ```bash
+   docker compose ps
+   curl -I http://localhost:50001
+   ```
+
+Expected result:
+- service `agent0` becomes `healthy`
+- HTTP returns `200 OK` on `http://localhost:50001`
+
 ## Features
 
 - **Autonomous Scanning**: Provide a target and the agent selects tools/steps dynamically.

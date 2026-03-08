@@ -101,6 +101,36 @@
       z-index: 1;
     }
 
+    .chats-new-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      background: rgba(0, 255, 65, 0.1);
+      color: var(--color-primary);
+      border: 1px solid rgba(0, 255, 65, 0.2);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .chats-new-btn:hover {
+      background: rgba(0, 255, 65, 0.15);
+      border-color: rgba(0, 255, 65, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .chats-new-btn svg {
+      width: 18px;
+      height: 18px;
+      transition: transform var(--transition-speed) ease, fill var(--transition-speed) ease;
+    }
+
     .new-scan-btn:hover {
       border-color: rgba(255, 255, 255, 0.26);
       background-color: #1a1a1e;
@@ -152,7 +182,7 @@
       border-left: none;
       overflow: hidden;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all var(--transition-speed) ease;
     }
 
     .chat-row-item {
@@ -270,6 +300,11 @@
 
     .light-mode .chat-selected {
       background: #e2e8f0;
+    }
+
+    .light-mode .chat-selected .project-color-ball {
+      background-color: #00c340 !important;
+      border-color: rgba(0, 128, 0, 0.35) !important;
     }
 
     /* .chat-list-button.font-bold { position: relative; background-color: var(--color-border) 0.05; } */

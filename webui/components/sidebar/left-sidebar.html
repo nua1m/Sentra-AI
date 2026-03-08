@@ -42,18 +42,36 @@
       user-select: none;
       -webkit-user-select: none;
       /* Safari compatibility */
-      height: 100vh;
+      height: 100%;
+      min-height: 100%;
+      max-height: 100%;
       /* Ensure full height */
       overflow: hidden;
       /* Prevent overall panel overflow */
-      box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.35);
+      box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+
+    #left-panel::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      pointer-events: none;
     }
 
     .light-mode #left-panel {
       background: #f8fafc;
       border-right-color: rgba(15, 23, 42, 0.1);
-      box-shadow: inset -1px 0 0 rgba(15, 23, 42, 0.08);
+      box-shadow: inset -1px 0 0 rgba(15, 23, 42, 0.1);
       color: rgba(15, 23, 42, 0.9);
+    }
+
+    .light-mode #left-panel::after {
+      background: rgba(15, 23, 42, 0.1);
     }
 
     /* Ensure component host behaves like the original direct children for flex layout */

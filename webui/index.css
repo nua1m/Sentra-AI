@@ -7,6 +7,11 @@
   box-sizing: border-box;
 }
 
+/* Make x-component invisible to layout engine to prevent wrapper-induced flexbox sizing issues */
+x-component {
+  display: contents;
+}
+
 :root {
   /* Dark mode */
   --color-background-dark: #09090b;
@@ -94,7 +99,7 @@
   /* Other variables */
   --border-radius: 1.125rem;
   --border-radius-sm: 0.5rem;
-  --transition-speed: 0.3s;
+  --transition-speed: 0.4s;
   --svg-filter: brightness(0) saturate(100%) var(--color-primary-filter);
   --color-primary-filter: invert(73%) sepia(17%) saturate(360%) hue-rotate(177deg) brightness(87%) contrast(85%);
 }
@@ -169,10 +174,52 @@ body,
 #chat-input,
 .message,
 .config-button,
-.switch-label {
-  -webkit-transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-  color: var(--color-text) !important;
+.switch-label,
+#left-panel,
+#right-panel,
+.chat-container,
+.message-container,
+.modal-content,
+.step-item,
+.border-left,
+.border-right,
+.welcome-screen-container,
+.sentra-pill-container,
+input,
+button,
+textarea,
+select,
+.dropdown-content,
+#progress-bar-box,
+#progress-bar-h,
+#progress-bar-i,
+#progress-bar,
+.queue-preview,
+.queue-item,
+.queue-item-seq,
+.queue-item-text,
+.attachment-icon,
+.attachment-item,
+.file-title,
+svg,
+svg path,
+svg rect,
+svg circle {
+  -webkit-transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, fill 0.4s ease, stroke 0.4s ease, filter 0.4s ease, opacity 0.4s ease;
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, fill 0.4s ease, stroke 0.4s ease, filter 0.4s ease, opacity 0.4s ease;
+}
+
+body .message-text,
+body .msg-content,
+body h1,
+body h2,
+body h3,
+body h4,
+body p,
+body span,
+body div {
+  /* Only apply color transitions to text deeply to avoid layout thrashing */
+  transition: color 0.4s ease, background-color 0.4s ease, border-color 0.4s ease;
 }
 
 /* Bootstrap-like tooltips */
@@ -425,8 +472,8 @@ img {
   flex-direction: column;
   flex-grow: 1;
   background: var(--color-background);
-  -webkit-transition: margin-left var(--transition-speed) ease-in-out;
-  transition: margin-left var(--transition-speed) ease-in-out;
+  -webkit-transition: margin-left 0.3s ease-in-out, background-color 0.4s ease, color 0.4s ease;
+  transition: margin-left 0.3s ease-in-out, background-color 0.4s ease, color 0.4s ease;
 }
 
 /* Scrollbar styles for right panel */
@@ -716,7 +763,7 @@ h4 {
   justify-content: center;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-speed) ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: var(--border-radius);
 }
