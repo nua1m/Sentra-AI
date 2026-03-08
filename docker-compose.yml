@@ -1,5 +1,5 @@
 services:
-  agent0:
+  sentra:
     build: .                            # build from our custom Dockerfile
     image: sentra-ai:latest             # tag the built image
     container_name: sentra-ai

@@ -52,12 +52,12 @@ Use these commands when you change files (especially under [`/webui`](Sentra-AI/
 
 1. Rebuild and recreate the runtime container:
    ```bash
-   docker compose up -d --build agent0
+   docker compose up -d --build sentra
    ```
 
 2. Optional: restart only (no rebuild):
    ```bash
-   docker compose restart agent0
+   docker compose restart sentra
    ```
 
 3. Verify container health and UI availability:
@@ -67,7 +67,7 @@ Use these commands when you change files (especially under [`/webui`](Sentra-AI/
    ```
 
 Expected result:
-- service `agent0` becomes `healthy`
+- service `sentra` becomes `healthy`
 - HTTP returns `200 OK` on `http://localhost:50001`
 
 ## Features

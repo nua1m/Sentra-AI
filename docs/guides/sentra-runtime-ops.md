@@ -54,14 +54,14 @@ Before demo, verify these UI/runtime items:
 Soft restart:
 
 ```bash
-docker compose restart agent0
+docker compose restart sentra
 ```
 
 Rebuild when frontend/prompt changes are not visible:
 
 ```bash
-docker compose build agent0
-docker compose up -d agent0
+docker compose build sentra
+docker compose up -d sentra
 ```
 
 If you previously ran older compose variants and see stale/orphan containers:
@@ -73,14 +73,14 @@ docker compose up -d --remove-orphans
 ## Troubleshooting
 
 - UI not reflecting latest changes:
-  - Rebuild image (`docker compose build agent0`) and recreate container (`docker compose up -d agent0`)
+  - Rebuild image (`docker compose build sentra`) and recreate container (`docker compose up -d sentra`)
   - Hard refresh browser (disable cache in devtools if needed)
 - Chat output format regresses:
   - Re-check prompt files under `prompts/`
-  - Restart `agent0`
+  - Restart `sentra`
 - Service appears down:
   - `docker compose ps`
-  - `docker compose logs --tail=200 agent0`
+  - `docker compose logs --tail=200 sentra`
 
 ## Legacy API Mode (Deprecated)
 
