@@ -7,8 +7,6 @@ const modalStack = [];
 // Create a single backdrop for all modals
 const backdrop = document.createElement("div");
 backdrop.className = "modal-backdrop";
-backdrop.style.display = "none";
-backdrop.style.backdropFilter = "blur(5px)";
 document.body.appendChild(backdrop);
 
 // Function to update z-index for all modals and backdrop
@@ -25,7 +23,7 @@ function updateModalZIndexes() {
   });
 
   // Always show backdrop
-  backdrop.style.display = "block";
+  backdrop.classList.add("show");
 
   if (modalStack.length > 1) {
     // For multiple modals, position backdrop between the top two
@@ -37,7 +35,7 @@ function updateModalZIndexes() {
     backdrop.style.zIndex = baseZIndex - 1;
   } else {
     // No modals, hide backdrop
-    backdrop.style.display = "none";
+    backdrop.classList.remove("show");
   }
 }
 
@@ -83,8 +81,12 @@ function createModalElement(path) {
   // Add modal to DOM
   document.body.appendChild(newModal);
 
-  // Show the modal
-  newModal.classList.add("show");
+  // Show the modal with a tiny delay to allow CSS transitions to trigger
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      newModal.classList.add("show");
+    });
+  });
 
   // Update modal z-indexes
   updateModalZIndexes();
@@ -160,7 +162,11 @@ export function openModal(modalPath, beforeClose = null) {
       // Add modal to stack
       modal.path = modalPath;
       modalStack.push(modal);
-      modal.element.classList.add("show");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          modal.element.classList.add("show");
+        });
+      });
       document.body.style.overflow = "hidden";
 
       // Update modal z-indexes
@@ -234,7 +240,7 @@ export function closeModal(modalPath = null) {
     // Handle backdrop visibility and body overflow
     if (modalStack.length === 0) {
       // Hide backdrop when no modals are left
-      backdrop.style.display = "none";
+      backdrop.classList.remove("show");
       document.body.style.overflow = "";
     } else {
       // Update modal z-indexes
