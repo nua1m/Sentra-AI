@@ -21,10 +21,6 @@
           </div>
 
         </div>
-        <!--Sidebar lower elements-->
-        <div class="left-panel-bottom">
-          <x-component path="sidebar/bottom/sidebar-bottom.html"></x-component>
-        </div>
       </div>
     </template>
   </div>
@@ -37,7 +33,7 @@
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
       transition: all var(--transition-speed) ease-in-out;
       width: 16rem;
       min-width: 16rem;
@@ -54,8 +50,7 @@
     }
 
     /* Ensure component host behaves like the original direct children for flex layout */
-    #left-panel>.left-panel-top,
-    #left-panel>.left-panel-bottom {
+    #left-panel>.left-panel-top {
       display: flex;
       flex-direction: column;
     }
@@ -71,7 +66,7 @@
     }
 
     .left-panel-top {
-      flex: 1 1 auto;
+      flex: 1 1 0;
       /* Take available space */
       display: -webkit-flex;
       display: flex;
@@ -82,14 +77,6 @@
       justify-content: flex-start;
       margin-top: 0;
       padding: 1.35rem 1rem 0 1rem;
-    }
-
-    .left-panel-bottom {
-      position: relative;
-      flex-shrink: 0;
-      flex-grow: 0;
-      padding: 0 1rem 1.25rem 1rem;
-      /* Prevent bottom from growing */
     }
 
     /* Chats section container inside sidebar */
@@ -143,9 +130,6 @@
         padding: 1.5rem 0.5rem 0 0.5rem;
       }
 
-      .left-panel-bottom {
-        padding: 0 0.5rem 1rem 0.5rem;
-      }
     }
 
     @media (max-height: 600px) {

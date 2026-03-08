@@ -1,6 +1,7 @@
 <html>
 
 <head>
+    <title>Settings</title>
     <script type="module">
         import { store as settingsStore } from "/components/settings/settings-store.js";
     </script>
@@ -36,11 +37,11 @@
             </div>
 
             <div class="actions">
-                <button class="btn btn-cancel"
+                <button class="btn btn-cancel minimal-cancel"
                     @click="closeModal('settings/minimal/topbar-model-settings.html')">Cancel</button>
-                <button class="btn btn-ok" :disabled="loading"
+                <button class="btn btn-ok minimal-save" :disabled="loading"
                     @click="(async () => { loading = true; const ok = await $store.settings.saveMinimalModelSettings(apiKey, modelName); loading = false; if (ok) closeModal('settings/minimal/topbar-model-settings.html'); })()">
-                    <span x-show="!loading">Save</span>
+                    <span x-show="!loading">Save Changes</span>
                     <span x-show="loading">Saving...</span>
                 </button>
             </div>
@@ -51,35 +52,113 @@
         .minimal-settings {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            min-width: 420px;
-            max-width: 520px;
+            gap: 18px;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 8px 2px 0;
         }
 
         .minimal-settings h3 {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
+            text-align: left;
+            color: var(--color-text);
         }
 
         .minimal-settings .desc {
             margin: 0;
             color: var(--color-text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.98rem;
+            line-height: 1.55;
         }
 
         .minimal-settings .field {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
+            width: 100%;
+            align-items: flex-start;
         }
 
         .minimal-settings input {
             border: 1px solid var(--color-border);
             background: var(--color-background);
             color: var(--color-text);
-            border-radius: 8px;
-            padding: 10px;
+            border-radius: 10px;
+            width: 100%;
+            padding: 11px 14px;
+            font-size: 0.98rem;
             outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.15s ease;
+        }
+
+        .minimal-settings input:focus {
+            border-color: var(--color-primary);
+        }
+
+        .minimal-settings label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            text-align: left;
+            width: 100%;
+        }
+
+        @media (max-width: 700px) {
+            .minimal-settings {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+
+        .modal-inner {
+            width: min(92vw, 700px);
+            max-width: 700px;
+            border-radius: 16px;
+        }
+
+        .modal-scroll {
+            padding: 0 1.8rem 1.8rem 1.8rem;
+        }
+
+        .modal-header {
+            padding: 1rem 1.8rem;
+        }
+
+        .modal-header h2 {
+            text-align: left;
+        }
+
+        .minimal-settings .actions {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .minimal-cancel {
+            border: none;
+            background: transparent;
+            color: var(--color-text-secondary);
+            padding: 8px 12px;
+        }
+
+        .minimal-cancel:hover {
+            color: var(--color-text);
+            background: transparent;
+        }
+
+        .minimal-save {
+            min-width: 150px;
+            border-radius: 10px;
+            font-weight: 700;
         }
 
         .minimal-settings .actions {

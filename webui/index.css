@@ -141,6 +141,21 @@ html {
   /* Improve font rendering */
 }
 
+/* Global UI scale-down to approximate browser zoom 90% */
+html {
+  zoom: 0.9;
+}
+
+/* Fallback for browsers without zoom support */
+@supports not (zoom: 1) {
+  html {
+    transform: scale(0.9);
+    transform-origin: top left;
+    width: calc(100% / 0.9);
+    height: calc(100% / 0.9);
+  }
+}
+
 body {
   overscroll-behavior: none;
   -webkit-overscroll-behavior: none;

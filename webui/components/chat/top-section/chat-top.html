@@ -31,8 +31,10 @@
         #time-date-container.top-control-capsule {
             display: inline-flex;
             align-items: center;
-            gap: 12px;
-            padding: 0.52rem 0.9rem;
+            justify-content: center;
+            gap: 8px;
+            padding: 0.34rem 0.64rem;
+            min-height: 36px;
             background: rgba(26, 26, 30, 0.86);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -48,10 +50,12 @@
         }
 
         .capsule-status-wrap {
-            padding-right: 0.75rem;
+            padding-right: 0.52rem;
             border-right: 1px solid rgba(255, 255, 255, 0.12);
             display: inline-flex;
             align-items: center;
+            justify-content: center;
+            min-height: 100%;
         }
 
         .light-mode .capsule-status-wrap {
@@ -61,6 +65,8 @@
         .capsule-actions-wrap {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
+            min-height: 100%;
         }
     </style>
 
