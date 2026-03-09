@@ -61,7 +61,15 @@
       color: transparent;
       -webkit-background-clip: text;
       background-clip: text;
-      animation: shine 1s linear infinite;
+      animation: shine 1.5s linear infinite;
+    }
+
+    .light-mode .shiny-text {
+      background: linear-gradient(to right, #10b981 20%, var(--color-text) 40%, var(--color-text) 60%, #10b981 80%);
+      background-size: 200% auto;
+      color: transparent;
+      -webkit-background-clip: text;
+      background-clip: text;
     }
 
     @keyframes shine {
@@ -71,8 +79,7 @@
     }
 
     .light-mode #progress-bar-i {
-      color: var(--color-border-dark);
-      opacity: 0.5;
+      color: #10b981;
     }
   </style>
 </body>

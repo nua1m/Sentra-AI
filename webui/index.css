@@ -46,7 +46,7 @@ x-component {
   --color-secondary-light: #e8eaf6;
   --color-accent-light: #b00020;
   --color-message-bg-light: #ffffff;
-  --color-highlight-light: #2563eb;
+  --color-highlight-light: #10b981;
   --color-message-text-light: #333333;
   --color-panel-light: #f0f0f0;
   --color-border-light: #bdbdbdcf;
@@ -113,6 +113,7 @@ x-component {
   --color-secondary: var(--color-secondary-light);
   --color-accent: var(--color-accent-light);
   --color-message-bg: var(--color-message-bg-light);
+  --color-highlight: var(--color-highlight-light);
   --color-message-text: var(--color-message-text-light);
   --color-panel: var(--color-panel-light);
   --color-border: var(--color-border-light);

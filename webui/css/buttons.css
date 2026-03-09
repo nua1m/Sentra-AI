@@ -10,7 +10,8 @@
   font-size: 0.875rem;
   font-family: "Rubik", Arial, Helvetica, sans-serif;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 2em; /* Standard height */
+  min-height: 2em;
+  /* Standard height */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -219,6 +220,21 @@
 .btn-icon-action:active {
   background-color: var(--color-background-hover);
   color: var(--color-primary);
+}
+
+.light-mode .btn-icon-action {
+  color: var(--color-text-muted);
+}
+
+.light-mode .btn-icon-action:hover {
+  border-color: rgba(15, 23, 42, 0.3);
+  background-color: rgba(15, 23, 42, 0.05);
+  color: var(--color-text);
+}
+
+.light-mode .btn-icon-action:active {
+  background-color: rgba(15, 23, 42, 0.1);
+  color: var(--color-text);
 }
 
 .btn-icon-action.danger:hover {
