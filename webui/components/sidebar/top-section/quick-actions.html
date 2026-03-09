@@ -9,7 +9,9 @@
 </head>
 
 <body>
-  <div class="wrapper" x-data="{ dropdownOpen: false }" @click.outside="dropdownOpen = false" @keydown.escape.window="dropdownOpen = false" x-init="$watch('dropdownOpen', v => v && $store.sidebar.updateDropdownPosition($el))">
+  <div class="wrapper" x-data="{ dropdownOpen: false }" @click.outside="dropdownOpen = false"
+    @keydown.escape.window="dropdownOpen = false"
+    x-init="$watch('dropdownOpen', v => v && $store.sidebar.updateDropdownPosition($el))">
     <div id="quick-actions">
       <!-- Dashboard -->
       <button class="config-button" id="dashboard" @click="deselectChat()" title="Dashboard">
@@ -17,12 +19,14 @@
       </button>
 
       <!-- Memory -->
-      <button class="config-button" id="memory-dash" @click="openModal('modals/memory/memory-dashboard.html')" title="Memory">
+      <button class="config-button" id="memory-dash" @click="openModal('modals/memory/memory-dashboard.html')"
+        title="Memory">
         <span class="material-symbols-outlined">psychology</span>
       </button>
 
       <!-- Scheduler -->
-      <button class="config-button" id="scheduler" @click="openModal('modals/scheduler/scheduler-modal.html')" title="Scheduler">
+      <button class="config-button" id="scheduler" @click="openModal('modals/scheduler/scheduler-modal.html')"
+        title="Scheduler">
         <span class="material-symbols-outlined">schedule</span>
       </button>
 
@@ -38,12 +42,10 @@
     </div>
 
     <!-- Dropdown Menu -->
-    <div class="dropdown-menu quick-actions-dropdown" 
-         x-show="dropdownOpen"
-         :style="$store.sidebar.dropdownStyle">
-      
+    <div class="dropdown-menu quick-actions-dropdown" x-show="dropdownOpen" :style="$store.sidebar.dropdownStyle">
+
       <div class="dropdown-header">Navigation</div>
-      
+
       <button class="dropdown-item" @click="deselectChat(); dropdownOpen = false">
         <span class="material-symbols-outlined">home</span>
         <span>Dashboard</span>
@@ -53,53 +55,64 @@
         <span class="material-symbols-outlined">snippet_folder</span>
         <span>Projects</span>
       </button>
-      
+
       <button class="dropdown-item" @click="openModal('modals/memory/memory-dashboard.html'); dropdownOpen = false">
         <span class="material-symbols-outlined">psychology</span>
         <span>Memories</span>
       </button>
-      
+
       <button class="dropdown-item" @click="openModal('modals/scheduler/scheduler-modal.html'); dropdownOpen = false">
         <span class="material-symbols-outlined">schedule</span>
         <span>Scheduler</span>
       </button>
-      
+
       <button class="dropdown-item" @click="openModal('settings/settings.html'); dropdownOpen = false">
         <span class="material-symbols-outlined">settings</span>
         <span>Settings</span>
       </button>
-      
+
+      <button class="dropdown-item" @click="$store.chatInput.browseFiles(); dropdownOpen = false">
+        <span class="material-symbols-outlined">folder</span>
+        <span>Files</span>
+      </button>
+
       <div class="dropdown-separator"></div>
       <div class="dropdown-header">Chat Actions</div>
-      
+
       <button class="dropdown-item" @click="$store.chats.newChat(); dropdownOpen = false">
         <span class="material-symbols-outlined">edit_square</span>
         <span>New Chat</span>
       </button>
-      
+
       <button class="dropdown-item" @click="$store.chats.loadChats(); dropdownOpen = false">
         <span class="material-symbols-outlined">folder_open</span>
         <span>Load Chat</span>
       </button>
-      
-      <button class="dropdown-item" @click="$store.chats.saveChat(); dropdownOpen = false" :disabled="!$store.chats.selected">
+
+      <button class="dropdown-item" @click="$store.chats.saveChat(); dropdownOpen = false"
+        :disabled="!$store.chats.selected">
         <span class="material-symbols-outlined">save</span>
         <span>Save Chat</span>
       </button>
 
-      <button class="dropdown-item" @click="$confirmClick($event, () => { $store.chats.resetChat(); dropdownOpen = false })" :disabled="!$store.chats.selected">
+      <button class="dropdown-item"
+        @click="$confirmClick($event, () => { $store.chats.resetChat(); dropdownOpen = false })"
+        :disabled="!$store.chats.selected">
         <span class="material-symbols-outlined">delete_sweep</span>
         <span>Clear Chat</span>
       </button>
-      
+
       <div class="dropdown-separator"></div>
-      
-      <button class="dropdown-item" @click="$confirmClick($event, () => { $store.chats.logout(); dropdownOpen = false })" :disabled="!$store.chats.loggedIn">
+
+      <button class="dropdown-item"
+        @click="$confirmClick($event, () => { $store.chats.logout(); dropdownOpen = false })"
+        :disabled="!$store.chats.loggedIn">
         <span class="material-symbols-outlined">logout</span>
         <span>Logout</span>
       </button>
 
-      <button class="dropdown-item" @click="$confirmClick($event, () => { $store.chats.restart(); dropdownOpen = false })">
+      <button class="dropdown-item"
+        @click="$confirmClick($event, () => { $store.chats.restart(); dropdownOpen = false })">
         <span class="material-symbols-outlined">restart_alt</span>
         <span>Restart A0</span>
       </button>
@@ -220,20 +233,29 @@
 
   /* New Chat Button */
   #newChat {
-  display: flex;
-  flex-wrap: nowrap;
-  background-color: transparent;
-  border: none;
-  align-items: center;
-  opacity: 0.6;
-  cursor: pointer;
-  -webkit-transition: all 0.1s ease-in-out, left var(--transition-speed) ease-in-out;
-  transition: all 0.1s ease-in-out, left var(--transition-speed) ease-in-out;
+    display: flex;
+    flex-wrap: nowrap;
+    background-color: transparent;
+    border: none;
+    align-items: center;
+    opacity: 0.6;
+    cursor: pointer;
+    -webkit-transition: all 0.1s ease-in-out, left var(--transition-speed) ease-in-out;
+    transition: all 0.1s ease-in-out, left var(--transition-speed) ease-in-out;
   }
-  #newChat:hover { opacity: 0.85; transform: scale(1.04); }
-  #newChat:active { opacity: 0.5; transform: scale(0.98); }
-  #newChat .material-symbols-outlined { 
-    color: var(--color-text); 
+
+  #newChat:hover {
+    opacity: 0.85;
+    transform: scale(1.04);
+  }
+
+  #newChat:active {
+    opacity: 0.5;
+    transform: scale(0.98);
+  }
+
+  #newChat .material-symbols-outlined {
+    color: var(--color-text);
     font-size: 24px;
   }
 
@@ -243,12 +265,22 @@
     color: #333333;
   }
 
-  .light-mode .config-button:hover { background-color: var(--color-background-hover); }
-  .light-mode .config-button:active { background-color: var(--color-background-hover); }
+  .light-mode .config-button:hover {
+    background-color: var(--color-background-hover);
+  }
+
+  .light-mode .config-button:active {
+    background-color: var(--color-background-hover);
+  }
 
   /* Transition helpers */
-  .-translate-y-1 { transform: translateY(-0.25rem); }
-  .translate-y-0 { transform: translateY(0); }
+  .-translate-y-1 {
+    transform: translateY(-0.25rem);
+  }
+
+  .translate-y-0 {
+    transform: translateY(0);
+  }
 </style>
 
 </html>

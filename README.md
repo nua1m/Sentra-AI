@@ -1,5 +1,7 @@
 <div align="center">
 
+![Sentra Logo](docs/res/sentra-logo.png)
+
 # `Sentra-AI`
 
 <p align="center">
