@@ -29,7 +29,7 @@
     /* Left Panel styles from index.css */
     #left-panel {
       background: #09090b;
-      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
@@ -38,7 +38,6 @@
       width: 16rem;
       min-width: 16rem;
       color: var(--color-text);
-      box-shadow: none;
       user-select: none;
       -webkit-user-select: none;
       /* Safari compatibility */
@@ -48,30 +47,13 @@
       /* Ensure full height */
       overflow: hidden;
       /* Prevent overall panel overflow */
-      box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
       position: relative;
-    }
-
-    #left-panel::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 1px;
-      background: rgba(255, 255, 255, 0.08);
-      pointer-events: none;
     }
 
     .light-mode #left-panel {
       background: #f8fafc;
-      border-right-color: rgba(15, 23, 42, 0.1);
-      box-shadow: inset -1px 0 0 rgba(15, 23, 42, 0.1);
+      border-right: 1px solid rgba(15, 23, 42, 0.06);
       color: rgba(15, 23, 42, 0.9);
-    }
-
-    .light-mode #left-panel::after {
-      background: rgba(15, 23, 42, 0.1);
     }
 
     /* Ensure component host behaves like the original direct children for flex layout */
