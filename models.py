@@ -840,10 +840,18 @@ def _parse_chunk(chunk: Any) -> ChatChunk:
 
 def _adjust_call_args(provider_name: str, model_name: str, kwargs: dict):
     # for openrouter add app reference
-    if provider_name == "openrouter":
+    # note: some OpenRouter configs are mapped through provider "openai" with api_base=openrouter
+    api_base = str(kwargs.get("api_base", "") or "").lower()
+    is_openrouter = provider_name == "openrouter" or "openrouter.ai" in api_base
+    if is_openrouter:
+        existing_headers = kwargs.get("extra_headers")
+        if not isinstance(existing_headers, dict):
+            existing_headers = {}
+
         kwargs["extra_headers"] = {
-            "HTTP-Referer": "https://agent-zero.ai",
-            "X-Title": "Agent Zero",
+            **existing_headers,
+            "HTTP-Referer": "https://github.com/nua1m/Sentra-AI",
+            "X-Title": "Sentra.AI",
         }
 
     # remap other to openai for litellm

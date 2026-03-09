@@ -17,3 +17,7 @@ RUN mkdir -p /usr/share/wordlists
 
 # Apply Sentra UI customizations over upstream Agent0 web UI
 COPY webui /a0/webui
+
+# Apply Sentra runtime branding overrides used by OpenRouter request metadata
+COPY models.py /a0/models.py
+COPY conf/model_providers.yaml /a0/conf/model_providers.yaml
