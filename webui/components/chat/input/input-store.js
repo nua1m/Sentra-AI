@@ -79,7 +79,17 @@ const model = {
     const chatInput = document.getElementById("chat-input");
     if (chatInput) {
       chatInput.style.height = "auto";
-      chatInput.style.height = chatInput.scrollHeight + "px";
+      const computed = globalThis.getComputedStyle?.(chatInput);
+      const maxHeight = computed ? parseFloat(computed.maxHeight) : NaN;
+      const targetHeight = Number.isFinite(maxHeight)
+        ? Math.min(chatInput.scrollHeight, maxHeight)
+        : chatInput.scrollHeight;
+
+      chatInput.style.height = `${targetHeight}px`;
+      chatInput.style.overflowY =
+        Number.isFinite(maxHeight) && chatInput.scrollHeight > maxHeight
+          ? "auto"
+          : "hidden";
     }
   },
 
@@ -218,7 +228,8 @@ const model = {
   reset() {
     this.message = "";
     attachmentsStore.clearAttachments();
-    this.adjustTextareaHeight();
+    // Wait one frame so x-model flushes the cleared value to the DOM first.
+    globalThis.requestAnimationFrame?.(() => this.adjustTextareaHeight());
   }
 };
 

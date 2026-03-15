@@ -30,6 +30,7 @@ You must treat the run as incomplete until all applicable checks below are done:
 4) If web port exists (80/443): gobuster/dirb completed
 5) If SSH/FTP exists: hydra decision explicitly handled (run if allowed, otherwise record why skipped)
 6) Final findings report delivered
+7) End-of-report checklist delivered (Executive + Technical)
 
 Hard rules for full audit mode:
 - Never ask for "continue" between these steps
@@ -128,6 +129,25 @@ after all tools complete, deliver:
 
 ### Summary
 [2-3 sentence plain-English summary of the overall security posture and the most important next step]
+
+### ✅ Security Workflow Checklist (Tool-by-Tool)
+
+Use explicit status tags in each line:
+- `[DONE]` completed successfully
+- `[SKIPPED: <reason>]` not applicable or not permitted
+- `[FAILED: <reason>]` attempted but did not complete
+
+| Stage | Tool(s) | Status | Evidence (short) |
+|---|---|---|---|
+| Recon & Service Discovery | nmap | [DONE/SKIPPED/FAILED] | open ports / service versions |
+| Vulnerability Context | NVD CVE lookup | [DONE/SKIPPED/FAILED] | CVE IDs + CVSS or no-match result |
+| Web Validation (if 80/443 open) | nikto | [DONE/SKIPPED/FAILED] | key findings summary |
+| Content Enumeration (if 80/443 open) | gobuster/dirb | [DONE/SKIPPED/FAILED] | notable paths discovered |
+| Credential Hygiene (if SSH/FTP open & allowed) | hydra (or explicit skip) | [DONE/SKIPPED/FAILED] | outcome or policy reason |
+| Remediation Readiness | remediation mapping | [DONE/SKIPPED/FAILED] | top fixes with commands |
+
+Checklist placement rule:
+- This checklist block must appear at the end of every completed scan report.
 ---
 
 5 do not output machine JSON unless the user explicitly asks for JSON export.
@@ -143,3 +163,4 @@ after all tools complete, deliver:
 - always verify tool output before presenting it — do not trust half-finished output
 - **MANDATORY: after ANY scan that identifies service versions, you MUST run the NVD CVE lookup — never list it as a "next step"**
 - do not force JSON output by default; prefer normal human-readable findings report format
+- **MANDATORY: every completed scan report must include the Security Workflow Checklist section**
