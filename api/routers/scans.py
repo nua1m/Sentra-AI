@@ -12,6 +12,7 @@ from api.core.security import verify_api_key
 from api.models.schemas import ScanOut, ScanRequest, ScanStarted, ScanSummaryOut
 from api.services import scan_service
 from api.services.agent0_client import Agent0Client, get_agent0_client
+from python.helpers.target_policy import is_authorized_target
 
 router = APIRouter(prefix="/api/v1/scans", tags=["scans"])
 logger = logging.getLogger(__name__)
@@ -27,6 +28,10 @@ async def start_scan(
     _: str = Depends(verify_api_key),
 ) -> ScanStarted:
     """Accepts a scan request and returns immediately. Poll /stream for live output."""
+    allowed, reason = is_authorized_target(request.target)
+    if not allowed:
+        raise HTTPException(status_code=400, detail=reason)
+
     await scan_service.fail_stale_running_scans(db)
     scan = await scan_service.create_pending_scan(db, request.target, request.scan_type)
 

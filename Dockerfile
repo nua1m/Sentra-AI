@@ -18,6 +18,8 @@ COPY wordlists /usr/share/wordlists
 
 # Apply Sentra UI customizations over upstream Agent0 web UI
 COPY webui /a0/webui
+COPY python /a0/python
+COPY api /a0/api
 
 # Apply Sentra runtime branding overrides used by OpenRouter request metadata
 COPY models.py /a0/models.py

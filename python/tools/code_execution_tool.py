@@ -10,6 +10,7 @@ from python.helpers.shell_ssh import SSHInteractiveSession
 from python.helpers.docker import DockerContainerManager
 from python.helpers.strings import truncate_text as truncate_text_string
 from python.helpers.messages import truncate_text as truncate_text_agent
+from python.helpers.target_policy import validate_targets
 import re
 
 # Timeouts for python, nodejs, and terminal runtimes.
@@ -175,8 +176,72 @@ class CodeExecution(Tool):
     async def execute_terminal_command(
         self, session: int, command: str, reset: bool = False
     ):
+        policy_violation = self.block_unauthorized_scan_targets(command)
+        if policy_violation:
+            return policy_violation
+
         prefix = ("bash>" if not runtime.is_windows() or self.agent.config.code_exec_ssh_enabled else "PS>") + self.format_command_for_output(command) + "\n\n"
         return await self.terminal_session(session, command, reset, prefix)
+
+    def block_unauthorized_scan_targets(self, command: str) -> Response | None:
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            tokens = command.split()
+
+        if not tokens:
+            return None
+
+        tool = tokens[0].lower()
+        targets: list[str] = []
+
+        if tool == "nmap":
+            skip_next = False
+            options_with_values = {
+                "-p", "-oN", "-oX", "-oG", "-oA", "-iL", "--script", "--script-args",
+                "-D", "-S", "-e", "-g", "--source-port", "--dns-servers",
+            }
+            for token in tokens[1:]:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if token in options_with_values:
+                    skip_next = True
+                    continue
+                if token.startswith("-"):
+                    continue
+                targets.append(token)
+        elif tool == "nikto":
+            for index, token in enumerate(tokens[:-1]):
+                if token in {"-h", "--host"}:
+                    targets.append(tokens[index + 1])
+        elif tool == "gobuster":
+            for index, token in enumerate(tokens[:-1]):
+                if token in {"-u", "--url"}:
+                    targets.append(tokens[index + 1])
+        elif tool == "dirb":
+            for token in tokens[1:]:
+                if token.startswith("-"):
+                    continue
+                targets.append(token)
+                break
+        else:
+            return None
+
+        if not targets:
+            return None
+
+        allowed, reason = validate_targets(targets)
+        if allowed:
+            return None
+
+        message = (
+            "Sentra policy blocked this scan request. "
+            f"{reason} "
+            "This prototype only permits authorized local-lab targets such as localhost, private IPs, "
+            "`dvwa`, `juice-shop`, `sentra-demo-vulnerable`, and `sentra-demo-remediated`."
+        )
+        return Response(message=message, break_loop=False)
 
     async def terminal_session(
         self, session: int, command: str, reset: bool = False, prefix: str = "", timeouts: dict | None = None

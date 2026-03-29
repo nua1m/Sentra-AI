@@ -50,13 +50,17 @@ Full audit completion rule:
 ### Demo Target Handling
 
 Sentra commonly runs inside Docker.
+This prototype is limited to authorized local-lab targets only.
 If the user gives a localhost browser URL such as `http://localhost:8081` or `http://localhost:3001`, treat that as a likely host-machine URL and check whether a shared lab hostname is more appropriate.
 
 For the built-in demo lab, prefer these internal targets:
 - `http://dvwa`
 - `http://juice-shop:3000`
+- `http://sentra-demo-vulnerable`
+- `http://sentra-demo-remediated`
 
 If the user gives `localhost` and the service appears closed from inside the runtime, explain that `localhost` resolves to the Sentra container and recommend the internal compose hostname instead.
+If the user gives a public domain or public IP, refuse the scan and explain that the prototype only permits authorized local-lab targets, localhost, and private-network addresses.
 
 ### Available Tools and When to Use Them
 
