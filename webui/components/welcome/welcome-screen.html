@@ -28,25 +28,27 @@
                             <div class="welcome-command-row">
                                 <span class="welcome-command-prompt">&gt;_</span>
                                 <input type="text" id="welcome-command-input"
-                                    placeholder="Example: Summarize high-risk exposure across the current target"
-                                    @keydown.enter="if ($event.target.value?.trim()) { $store.chatInput.message = $event.target.value.trim(); $store.chatInput.sendMessage(); $event.target.value = ''; }" />
+                                    placeholder="Example: Assess http://dvwa and summarize the main findings"
+                                    @keydown.enter="if ($event.target.value?.trim()) { $store.chatInput.message = $event.target.value.trim(); if (!$store.chats.selected) { await $store.chats.newChat(); } $store.chatInput.sendMessage(); $event.target.value = ''; }" />
                                 <button type="button" class="welcome-exec-btn"
-                                    @click="const input = document.getElementById('welcome-command-input'); if (input && input.value?.trim()) { $store.chatInput.message = input.value.trim(); $store.chatInput.sendMessage(); input.value=''; }">
+                                    @click="const input = document.getElementById('welcome-command-input'); if (input && input.value?.trim()) { $store.chatInput.message = input.value.trim(); if (!$store.chats.selected) { await $store.chats.newChat(); } $store.chatInput.sendMessage(); input.value=''; }">
                                     EXECUTE
                                 </button>
                             </div>
 
                             <div class="welcome-quick-cmds">
                                 <button type="button" class="welcome-quick-btn"
-                                    @click="$store.chatInput.message='List critical findings for current target'; $store.chatInput.sendMessage()">[
+                                    @click="$store.chatInput.message='List critical findings for the current target and explain the risk in plain language'; if (!$store.chats.selected) { await $store.chats.newChat(); } $store.chatInput.sendMessage()">[
                                     CRITICAL_FINDINGS ]</button>
                                 <button type="button" class="welcome-quick-btn"
-                                    @click="$store.chatInput.message='Summarize network exposure and high-risk ports'; $store.chatInput.sendMessage()">[
+                                    @click="$store.chatInput.message='Assess http://dvwa and summarize network exposure and web findings'; if (!$store.chats.selected) { await $store.chats.newChat(); } $store.chatInput.sendMessage()">[
                                     NETWORK_EXPOSURE_SUMMARY ]</button>
                                 <button type="button" class="welcome-quick-btn"
-                                    @click="$store.chatInput.message='Run full attack surface audit with CVE enrichment'; $store.chatInput.sendMessage()">[
+                                    @click="$store.chatInput.message='Run a full security audit on http://juice-shop:3000 with CVE enrichment and remediation guidance'; if (!$store.chats.selected) { await $store.chats.newChat(); } $store.chatInput.sendMessage()">[
                                     ATTACK_SURFACE_AUDIT ]</button>
                             </div>
+
+                            <p class="welcome-demo-note">Demo lab targets inside Docker: <code>http://dvwa</code> and <code>http://juice-shop:3000</code>. Avoid <code>localhost</code> targets from inside Sentra.</p>
                         </div>
                     </div>
 
@@ -182,6 +184,19 @@
             max-width: 680px;
             color: var(--color-text-secondary);
             line-height: 1.6;
+        }
+
+        .welcome-demo-note {
+            margin: 1rem 0 0;
+            color: var(--color-text-secondary);
+            font-size: 0.92rem;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .welcome-demo-note code {
+            color: var(--color-primary);
+            font-family: "Roboto Mono", monospace;
         }
 
         .welcome-command-row {

@@ -87,10 +87,11 @@ async def run_scan(
         strategy = SCAN_STRATEGIES.get(scan_type, SCAN_STRATEGIES["full"])
         prompt = (
             f"Target: {target}. Scan mode: {scan_type}. {strategy} "
-            "Operate autonomously and complete all applicable phases before finishing. "
-            "For full scans, do not stop after partial output: run nmap, CVE enrichment for discovered services, "
-            "web checks (nikto + gobuster/dirb) when 80/443 are open, and explicit credential-audit handling "
-            "(run or clearly state why skipped) when SSH/FTP are open. "
+            "Operate autonomously within authorized defensive assessment scope and complete all applicable phases before finishing. "
+            "If the target uses localhost and the service appears unreachable, consider whether the runtime is inside Docker and whether an internal hostname such as http://dvwa or http://juice-shop:3000 is more appropriate. "
+            "For full scans, do not stop after partial output: run nmap, CVE enrichment for discovered services when available, "
+            "and web checks (nikto plus gobuster or dirb) when a web service is present. "
+            "Do not perform credential attacks, exploitation, persistence, privilege escalation, or post-exploitation activity. "
             "If a tool fails, retry once with safer flags and continue remaining steps. "
             "Return ONLY one valid JSON object (no markdown, no extra text) with this schema: "
             '{"target":"string","scan_date":"ISO-8601","tools_used":["string"],'

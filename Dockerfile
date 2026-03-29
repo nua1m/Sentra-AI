@@ -2,7 +2,7 @@ FROM agent0ai/agent-zero
 
 # Pre-install core Sentra-AI security tools
 # Trimmed to essentials only for fast build times
-# hydra/medusa available for Sentra to install at runtime if needed for cred auditing
+# Keep the runtime lean and focused on bounded reconnaissance and web assessment
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
         nmap \
@@ -12,8 +12,9 @@ RUN apt-get update -qq && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create wordlists directory (rockyou.txt mounted from host via docker-compose)
+# Create wordlists directory and include a small built-in demo list
 RUN mkdir -p /usr/share/wordlists
+COPY wordlists /usr/share/wordlists
 
 # Apply Sentra UI customizations over upstream Agent0 web UI
 COPY webui /a0/webui

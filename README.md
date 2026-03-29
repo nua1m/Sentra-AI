@@ -12,9 +12,9 @@
 
 ## Overview
 
-Sentra-AI is an autonomous cybersecurity assessment platform powered by AI agents. It leverages the power of generative AI and various security tools to perform comprehensive security audits on target systems, networks, and applications. 
+Sentra-AI is an autonomous cybersecurity assessment platform powered by AI agents. It combines generative AI with established open-source security tools to perform bounded, defensive security assessments on authorized systems, networks, and applications.
 
-Rather than relying on static rulesets, Sentra-AI utilizes dynamic agentic behavior to intelligently navigate, scan, and report on vulnerabilities, attempting to uncover deep attack vectors that traditional scanners might miss.
+Rather than relying only on static rulesets, Sentra-AI uses agentic workflow coordination to guide tool selection, explain findings, and present remediation-oriented output in a more understandable form.
 
 ## Architecture
 
