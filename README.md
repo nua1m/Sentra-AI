@@ -63,8 +63,10 @@ Optional demo pages in [`demo-sites/`](demo-sites) can also be scanned if you ar
 
 - **Vulnerable Demo Page**
   - Browser URL: `http://localhost:8082`
+  - Sentra target: `http://sentra-demo-vulnerable`
 - **Remediated Demo Page**
   - Browser URL: `http://localhost:8083`
+  - Sentra target: `http://sentra-demo-remediated`
 
 Important notes:
 
