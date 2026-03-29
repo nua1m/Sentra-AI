@@ -48,6 +48,54 @@ The current deployment is a direct Agent0-based stack with Sentra branding:
 ### Accessing the Platform
 - **Sentra Web UI**: http://localhost:50001
 
+### Local Scan Targets
+
+Sentra is intended to scan authorized local lab targets. The main demo targets are:
+
+- **DVWA**
+  - Browser URL: `http://localhost:8081`
+  - Sentra target: `http://dvwa`
+- **OWASP Juice Shop**
+  - Browser URL: `http://localhost:3001`
+  - Sentra target: `http://juice-shop:3000`
+
+Optional demo pages in [`demo-sites/`](demo-sites) can also be scanned if you are serving them locally, for example:
+
+- **Vulnerable Demo Page**
+  - Browser URL: `http://localhost:8082`
+- **Remediated Demo Page**
+  - Browser URL: `http://localhost:8083`
+
+Important notes:
+
+- Use the `localhost` URLs only from your host browser.
+- When prompting Sentra from inside the Dockerized runtime, prefer internal targets such as `http://dvwa` and `http://juice-shop:3000`.
+- Do not expose intentionally vulnerable demo targets to the public internet.
+
+### Sample Prompts
+
+These prompts work well for local testing and viva demonstrations:
+
+```text
+Assess http://dvwa and summarize the main findings in plain language with remediation guidance.
+```
+
+```text
+Run a full security audit on http://dvwa with CVE enrichment and a security workflow checklist.
+```
+
+```text
+Assess http://juice-shop:3000 and summarize the main findings in plain language with remediation guidance.
+```
+
+```text
+Run a full audit on http://juice-shop:3000.
+```
+
+```text
+Check whether http://juice-shop:3000 exposes notable paths or directories and summarize any findings.
+```
+
 ### Rebuild / Restart Docker Runtime
 
 Use these commands when you change files (especially under [`/webui`](Sentra-AI/webui)) and need the running container to pick up updates.
